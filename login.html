@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roomly - Login / Signup</title>
+  <title>Roomofy - Login / Signup</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -103,129 +103,149 @@
     </form>
   </div>
 
-  <script>
-    const API_BASE = "https://roomofy-backend.onrender.com/api";
+<script>
+  // Dynamic API base: localhost for local, Render URL for production
+  const API_BASE = window.location.hostname.includes('localhost') 
+    ? 'http://localhost:5000/api'
+    : 'https://roomofy-backend.onrender.com/api';
 
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-    const loginMessage = document.getElementById('loginMessage');
-    const signupMessage = document.getElementById('signupMessage');
-    const showSignupLink = document.getElementById('showSignup');
-    const showLoginLink = document.getElementById('showLogin');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const loginMessage = document.getElementById('loginMessage');
+  const signupMessage = document.getElementById('signupMessage');
+  const showSignupLink = document.getElementById('showSignup');
+  const showLoginLink = document.getElementById('showLogin');
 
-    // Toggle forms
-    showSignupLink.addEventListener('click', () => {
-      loginForm.style.display = 'none';
-      signupForm.style.display = 'flex';
-      clearMessages();
-    });
+  // Toggle forms
+  showSignupLink.addEventListener('click', () => {
+    loginForm.style.display = 'none';
+    signupForm.style.display = 'flex';
+    clearMessages();
+  });
 
-    showLoginLink.addEventListener('click', () => {
-      signupForm.style.display = 'none';
-      loginForm.style.display = 'flex';
-      clearMessages();
-    });
+  showLoginLink.addEventListener('click', () => {
+    signupForm.style.display = 'none';
+    loginForm.style.display = 'flex';
+    clearMessages();
+  });
 
-    function clearMessages() {
-      loginMessage.textContent = '';
-      signupMessage.textContent = '';
-      loginMessage.classList.remove('success', 'error');
-      signupMessage.classList.remove('success', 'error');
+  function clearMessages() {
+    loginMessage.textContent = '';
+    signupMessage.textContent = '';
+    loginMessage.classList.remove('success', 'error');
+    signupMessage.classList.remove('success', 'error');
+  }
+
+  // Debug function to log fetch info
+  async function debugFetch(url, options) {
+    console.log('Fetching URL:', url);
+    console.log('Options:', options);
+    const start = performance.now();
+    try {
+      const res = await fetch(url, options);
+      const end = performance.now();
+      console.log(`Response received in ${(end-start).toFixed(2)}ms`);
+      console.log('Response status:', res.status);
+      const data = await res.json().catch(() => null);
+      console.log('Response JSON:', data);
+      return { res, data };
+    } catch (err) {
+      console.error('Fetch error:', err);
+      throw err;
+    }
+  }
+
+  // Login
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearMessages();
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!mobile || !password) {
+      loginMessage.textContent = "Please fill all fields";
+      loginMessage.classList.add('error');
+      return;
     }
 
-    // Login
-    loginForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      clearMessages();
-      const mobile = document.getElementById('loginMobile').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
+    try {
+      const { res, data } = await debugFetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile, password })
+      });
 
-      if (!mobile || !password) {
-        loginMessage.textContent = "Please fill all fields";
+      if (!res.ok) {
+        loginMessage.textContent = data?.message || "Login failed";
         loginMessage.classList.add('error');
         return;
       }
 
-      try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mobile, password })
-        });
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('mobile', data.user.mobile);
+      localStorage.setItem('isAdmin', data.user.isAdmin);
 
-        if (!res.ok) {
-          const err = await res.json();
-          loginMessage.textContent = err.message || "Login failed";
-          loginMessage.classList.add('error');
-          return;
-        }
+      loginMessage.textContent = 'Login successful! Redirecting...';
+      loginMessage.classList.add('success');
 
-        const data = await res.json();
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('mobile', data.user.mobile);
-        localStorage.setItem('isAdmin', data.user.isAdmin);
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 1200);
 
-        loginMessage.textContent = 'Login successful! Redirecting...';
-        loginMessage.classList.add('success');
+    } catch (error) {
+      loginMessage.textContent = "Network error, please check console.";
+      loginMessage.classList.add('error');
+    }
+  });
 
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1200);
+  // Signup
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearMessages();
 
-      } catch (error) {
-        loginMessage.textContent = "Network error, please try again later.";
-        loginMessage.classList.add('error');
-      }
-    });
+    const mobile = document.getElementById('signupMobile').value.trim();
+    const password = document.getElementById('signupPassword').value.trim();
+    const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
 
-    // Signup
-    signupForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      clearMessages();
+    if (!mobile || !password || !confirmPassword) {
+      signupMessage.textContent = "Please fill all fields";
+      signupMessage.classList.add('error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      signupMessage.textContent = "Passwords do not match";
+      signupMessage.classList.add('error');
+      return;
+    }
 
-      const mobile = document.getElementById('signupMobile').value.trim();
-      const password = document.getElementById('signupPassword').value.trim();
-      const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+    try {
+      const { res, data } = await debugFetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile, password })
+      });
 
-      if (!mobile || !password || !confirmPassword) {
-        signupMessage.textContent = "Please fill all fields";
+      if (!res.ok) {
+        signupMessage.textContent = data?.message || "Signup failed";
         signupMessage.classList.add('error');
         return;
       }
-      if (password !== confirmPassword) {
-        signupMessage.textContent = "Passwords do not match";
-        signupMessage.classList.add('error');
-        return;
-      }
 
-      try {
-        const res = await fetch(`${API_BASE}/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mobile, password })
-        });
+      signupMessage.textContent = "Signup successful! Please login.";
+      signupMessage.classList.add('success');
 
-        if (!res.ok) {
-          const err = await res.json();
-          signupMessage.textContent = err.message || "Signup failed";
-          signupMessage.classList.add('error');
-          return;
-        }
+      setTimeout(() => {
+        signupForm.style.display = 'none';
+        loginForm.style.display = 'flex';
+        clearMessages();
+      }, 2000);
 
-        signupMessage.textContent = "Signup successful! Please login.";
-        signupMessage.classList.add('success');
+    } catch (error) {
+      signupMessage.textContent = "Network error, please check console.";
+      signupMessage.classList.add('error');
+    }
+  });
+</script>
 
-        setTimeout(() => {
-          signupForm.style.display = 'none';
-          loginForm.style.display = 'flex';
-          clearMessages();
-        }, 2000);
-
-      } catch (error) {
-        signupMessage.textContent = "Network error, please try again later.";
-        signupMessage.classList.add('error');
-      }
-    });
-  </script>
 </body>
 </html>
