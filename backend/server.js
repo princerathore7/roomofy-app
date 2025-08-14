@@ -13,25 +13,21 @@ const app = express();
 // CONFIG
 // -------------------
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/roomofy';
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const MONGO_URI = process.env.MONGO_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
+const BASE_URL = process.env.BASE_URL;
 
-// BASE_URL dynamic: production vs localhost
-const BASE_URL = process.env.BASE_URL || 
-  (NODE_ENV === 'production' ? `https://roomofy-app-1.onrender.com` : `http://localhost:${PORT}`);
-
-// Allowed origins for CORS
+// Allowed origins from .env
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5500', 'https://roomofy.netlify.app', 'https://roomofy-app-1.onrender.com'];
+  : [];
 
 // -------------------
 // MIDDLEWARES
 // -------------------
 app.use(cors({
   origin: function(origin, callback){
-    if(!origin) return callback(null, true); // Postman or non-browser requests
+    if(!origin) return callback(null, true); // Postman or non-browser
     if(ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
@@ -44,12 +40,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // -------------------
 // MONGO DB CONNECT
 // -------------------
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB connected'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // -------------------
 // SCHEMAS & MODELS
@@ -130,7 +123,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ROOM ROUTES
 // -------------------
 
-// Get rooms with optional search & price filter
+// GET rooms with optional search & price filters
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice } = req.query;
@@ -156,27 +149,23 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
-// Add new room
+// POST new room
 app.post('/api/rooms', (req, res, next) => {
   upload.single('photo')(req, res, function(err){
-    if(err){
-      console.error('Multer error:', err);
-      return res.status(400).json({ message: 'File upload error: ' + err.message });
-    }
+    if(err) return res.status(400).json({ message: 'File upload error: ' + err.message });
     next();
   });
 }, async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
 
-    if(!title || !price || !location || !ac){
-      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC are required' });
-    }
+    if(!title || !price || !location || !ac)
+      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
 
     if(!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const priceNum = Number(price);
-    if(isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be a valid positive number' });
+    if(isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be positive number' });
 
     const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
@@ -189,9 +178,9 @@ app.post('/api/rooms', (req, res, next) => {
   }
 });
 
-// Delete room
+// DELETE room
 app.delete('/api/rooms/:id', async (req, res) => {
-  try{
+  try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
     if(!deleted) return res.status(404).json({ message: 'Room not found' });
     res.json({ message: 'Room deleted successfully' });
@@ -201,9 +190,9 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
-// Update room
+// UPDATE room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
-  try{
+  try {
     const { title, price, location, description, ac } = req.body;
     const updateData = { title, price: Number(price), location, description, ac };
 
