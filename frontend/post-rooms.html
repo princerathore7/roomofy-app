@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Post New Room</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
+      background: #fff0f0;
+      color: #d32f2f;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #d32f2f;
+    }
+    h2 { text-align: center; margin-bottom: 20px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1.8px solid #d32f2f;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    button {
+      background: #d32f2f;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { background: #b71c1c; }
+    .msg {
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+    .msg.success { color: green; }
+    .msg.error { color: red; }
+  </style>
+</head>
+<body>
+
+  <h2>Post New Room</h2>
+
+  <form id="postRoomForm" enctype="multipart/form-data">
+    <input type="text" id="title" name="title" placeholder="Hotel / Room Name" required />
+    <input type="number" id="price" name="price" placeholder="Price (₹)" min="1" required />
+    <select id="ac" name="ac" required>
+      <option value="">Select AC / Non-AC</option>
+      <option value="AC">AC</option>
+      <option value="Non-AC">Non-AC</option>
+    </select>
+    <input type="text" id="location" name="location" placeholder="Location" required />
+    <textarea id="description" name="description" placeholder="Description (optional)"></textarea>
+    <input type="file" id="photo" name="photo" accept="image/*" required />
+    <button type="submit">Add Room</button>
+  </form>
+
+  <div class="msg" id="message"></div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000';
+
+    const form = document.getElementById('postRoomForm');
+    const msgDiv = document.getElementById('message');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      msgDiv.textContent = '';
+      msgDiv.className = 'msg';
+
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch(`${API_BASE}/rooms`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msgDiv.textContent = 'Room successfully posted!';
+          msgDiv.classList.add('success');
+          form.reset();
+        } else {
+          msgDiv.textContent = data.error || 'Failed to post room';
+          msgDiv.classList.add('error');
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Network error. Please try again later.';
+        msgDiv.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

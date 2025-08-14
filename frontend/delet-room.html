@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Delete Room</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      background: #fff0f0;
+      color: #d32f2f;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #d32f2f;
+    }
+    h2 { text-align: center; margin-bottom: 20px; }
+    .room-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .room-card {
+      border: 2px solid #d32f2f;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    .room-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .room-info {
+      padding: 15px;
+      flex-grow: 1;
+    }
+    .room-title {
+      font-weight: bold;
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+    .room-price {
+      color: #b71c1c;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .room-details {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    button {
+      background: #d32f2f;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover { background: #b71c1c; }
+    .msg {
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+    .msg.success { color: green; }
+    .msg.error { color: red; }
+  </style>
+</head>
+<body>
+
+  <h2>Delete Rooms</h2>
+  <div id="message" class="msg"></div>
+  <div class="room-list" id="roomList"></div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000';
+    const roomListDiv = document.getElementById('roomList');
+    const msgDiv = document.getElementById('message');
+
+    async function fetchRooms() {
+      try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        const rooms = await res.json();
+
+        if (!res.ok || rooms.length === 0) {
+          roomListDiv.innerHTML = '<p>No rooms available.</p>';
+          return;
+        }
+
+        roomListDiv.innerHTML = rooms.map(room => `
+          <div class="room-card" id="room-${room._id}">
+            <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+            <div class="room-info">
+              <div class="room-title">${room.title}</div>
+              <div class="room-price">₹${room.price}</div>
+              <div class="room-details">${room.ac} | ${room.location}</div>
+              <button onclick="deleteRoom('${room._id}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        msgDiv.textContent = 'Network error. Please try again later.';
+        msgDiv.classList.add('error');
+      }
+    }
+
+    async function deleteRoom(id) {
+      if (!confirm('Are you sure you want to delete this room?')) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById(`room-${id}`).remove();
+          msgDiv.textContent = 'Room deleted successfully!';
+          msgDiv.className = 'msg success';
+        } else {
+          msgDiv.textContent = data.error || 'Failed to delete room';
+          msgDiv.className = 'msg error';
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Network error. Please try again later.';
+        msgDiv.className = 'msg error';
+      }
+    }
+
+    fetchRooms();
+  </script>
+</body>
+</html>

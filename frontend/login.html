@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roomly - Login / Signup</title>
+ <style>
+   body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      color: #000;
+      padding: 24px;
+      border-radius: 12px;
+      width: 360px;
+      box-sizing: border-box;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+ input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: rgb(214, 1, 1);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 8px;
+      transition: background 0.2s ease-in-out;
+    }
+       button:hover {
+      background: darkred;
+    }
+    .toggle {
+      cursor: pointer;
+      color: rgb(193, 3, 3);
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      user-select: none;
+    }
+    h2 {
+      color: rgb(195, 0, 0);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Login form -->
+    <form id="loginForm">
+      <h2>Roomofy Login</h2>
+      <input type="text" id="loginMobile" placeholder="Mobile number" required pattern="\d{10}" title="Enter 10-digit mobile number" />
+      <input type="password" id="loginPassword" placeholder="Password" required minlength="6" />
+      <button type="submit">Login</button>
+      <p class="message" id="loginMessage"></p>
+      <p class="toggle-link" id="showSignup">Don't have an account? Signup here</p>
+    </form>
+
+    <!-- Signup form (hidden initially) -->
+    <form id="signupForm" style="display:none;">
+      <h2>Signup</h2>
+      <input type="text" id="signupMobile" placeholder="Mobile number" required pattern="\d{10}" title="Enter 10-digit mobile number" />
+      <input type="password" id="signupPassword" placeholder="Password" required minlength="6" />
+      <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required minlength="6" />
+      <button type="submit">Signup</button>
+      <p class="message" id="signupMessage"></p>
+      <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
+    </form>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:5000/api";
+
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+
+    const loginMessage = document.getElementById('loginMessage');
+    const signupMessage = document.getElementById('signupMessage');
+
+    const showSignupLink = document.getElementById('showSignup');
+    const showLoginLink = document.getElementById('showLogin');
+
+    // Toggle forms
+    showSignupLink.addEventListener('click', () => {
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'flex';
+      clearMessages();
+    });
+
+    showLoginLink.addEventListener('click', () => {
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'flex';
+      clearMessages();
+    });
+
+    function clearMessages() {
+      loginMessage.textContent = '';
+      loginMessage.classList.remove('success');
+      signupMessage.textContent = '';
+      signupMessage.classList.remove('success');
+    }
+
+    // Login submit
+    loginForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      clearMessages();
+
+      const mobile = document.getElementById('loginMobile').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (!mobile || !password) {
+        loginMessage.textContent = "Please fill all fields";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile, password })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          loginMessage.textContent = err.message || "Login failed";
+          return;
+        }
+
+        const data = await res.json();
+
+        // Save token and user info
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('mobile', data.user.mobile);
+        localStorage.setItem('isAdmin', data.user.isAdmin);
+
+        loginMessage.classList.add('success');
+        loginMessage.textContent = 'Login successful! Redirecting...';
+
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1200);
+
+      } catch (error) {
+        loginMessage.textContent = "Network error, please try again later.";
+      }
+    });
+
+    // Signup submit
+    signupForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      clearMessages();
+
+      const mobile = document.getElementById('signupMobile').value.trim();
+      const password = document.getElementById('signupPassword').value.trim();
+      const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+
+      if (!mobile || !password || !confirmPassword) {
+        signupMessage.textContent = "Please fill all fields";
+        return;
+      }
+      if (password !== confirmPassword) {
+        signupMessage.textContent = "Passwords do not match";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile, password })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          signupMessage.textContent = err.message || "Signup failed";
+          return;
+        }
+
+        signupMessage.classList.add('success');
+        signupMessage.textContent = "Signup successful! Please login.";
+
+        // Auto-switch to login after 2 seconds
+        setTimeout(() => {
+          signupForm.style.display = 'none';
+          loginForm.style.display = 'flex';
+          clearMessages();
+        }, 2000);
+
+      } catch (error) {
+        signupMessage.textContent = "Network error, please try again later.";
+      }
+    });
+  </script>
+</body>
+</html>

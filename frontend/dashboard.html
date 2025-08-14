@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Roomofy Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #fff;
+      color: #d32f2f;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .room-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+      gap: 20px;
+    }
+    .room-card {
+      border: 2px solid #d32f2f;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff0f0;
+      box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .room-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .room-info {
+      padding: 15px;
+      flex-grow: 1;
+    }
+    .room-title {
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+    .room-price {
+      color: #b71c1c;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .room-details {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .room-desc {
+      font-style: italic;
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 15px;
+    }
+    .actions {
+      padding: 0 15px 15px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    button.book-btn {
+      background: #d32f2f;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      flex-shrink: 0;
+    }
+    button.book-btn:hover {
+      background: #b71c1c;
+    }
+    select.rating-select {
+      border: 1.8px solid #d32f2f;
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-size: 1rem;
+      color: #d32f2f;
+      cursor: pointer;
+      flex-shrink: 0;
+      width: 90px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Available Rooms</h1>
+  <div class="room-list" id="roomList"></div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000';
+
+    const roomListDiv = document.getElementById('roomList');
+
+    function generateWhatsAppLink(room) {
+      const message = encodeURIComponent(
+        `Hello, I want to book this room:\n` +
+        `Name: ${room.title}\n` +
+        `Price: ₹${room.price}\n` +
+        `AC/Non-AC: ${room.ac}\n` +
+        `Location: ${room.location}`
+      );
+      // Replace '919999999999' with your WhatsApp number (with country code, no + sign)
+      const whatsappNumber = '916262475387';
+      return `https://wa.me/${whatsappNumber}?text=${message}`;
+    }
+
+    async function fetchRooms() {
+      try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (!res.ok) {
+          roomListDiv.textContent = 'Failed to load rooms';
+          return;
+        }
+        const rooms = await res.json();
+        if (rooms.length === 0) {
+          roomListDiv.textContent = 'No rooms available';
+          return;
+        }
+
+        roomListDiv.innerHTML = rooms.map(room => {
+          return `
+            <div class="room-card">
+              <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+              <div class="room-info">
+                <div class="room-title">${room.title}</div>
+                <div class="room-price">₹${room.price}</div>
+                <div class="room-details">${room.ac} | ${room.location}</div>
+                <div class="room-desc">${room.description || ''}</div>
+              </div>
+              <div class="actions">
+                <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
+                <select class="rating-select" aria-label="Rate this room" onchange="alert('You rated this room ' + this.value + ' star(s)! Thanks!')">
+                  <option value="" disabled selected>Rate</option>
+                  <option value="1">1 ★</option>
+                  <option value="2">2 ★★</option>
+                  <option value="3">3 ★★★</option>
+                  <option value="4">4 ★★★★</option>
+                  <option value="5">5 ★★★★★</option>
+                </select>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        roomListDiv.textContent = 'Network error. Please try again later.';
+      }
+    }
+
+    fetchRooms();
+  </script>
+</body>
+</html>
