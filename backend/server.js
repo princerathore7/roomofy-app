@@ -13,22 +13,33 @@ const app = express();
 // CONFIG
 // -------------------
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
-const JWT_SECRET = process.env.JWT_SECRET;
-const BASE_URL = process.env.BASE_URL;
+const MONGO_URI = process.env.MONGO_URI || 'rv://prince242com:prince242%24@cluster0.3k2ajwh.mongodb.net/roomofy_db?retryWrites=true&w=majority&appName=Cluster0';
+const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123t';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+let BASE_URL = process.env.BASE_URL;
+if (!BASE_URL) {
+  BASE_URL = NODE_ENV === 'production' 
+    ? `https://roomofy-app-1.onrender.com` 
+    : `http://localhost:${PORT}`;
+}
 
 // Allowed origins from .env
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : [];
+  : ['http://localhost:5500', 'http://127.0.0.1:5500'];
+
+console.log('⚡ ALLOWED_ORIGINS:', ALLOWED_ORIGINS);
+console.log('⚡ BASE_URL:', BASE_URL);
 
 // -------------------
 // MIDDLEWARES
 // -------------------
 app.use(cors({
   origin: function(origin, callback){
-    if(!origin) return callback(null, true); // Postman or non-browser
+    if(!origin) return callback(null, true); // Postman or non-browser requests
     if(ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    console.warn(`🚫 CORS blocked origin: ${origin}`);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
   credentials: true
@@ -122,12 +133,9 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 // ROOM ROUTES
 // -------------------
-
-// GET rooms with optional search & price filters
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice } = req.query;
-
     let filter = {};
     if(search){
       filter.$or = [
@@ -149,7 +157,6 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
-// POST new room
 app.post('/api/rooms', (req, res, next) => {
   upload.single('photo')(req, res, function(err){
     if(err) return res.status(400).json({ message: 'File upload error: ' + err.message });
@@ -158,10 +165,7 @@ app.post('/api/rooms', (req, res, next) => {
 }, async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-
-    if(!title || !price || !location || !ac)
-      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-
+    if(!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     if(!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const priceNum = Number(price);
@@ -178,7 +182,6 @@ app.post('/api/rooms', (req, res, next) => {
   }
 });
 
-// DELETE room
 app.delete('/api/rooms/:id', async (req, res) => {
   try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
@@ -190,15 +193,11 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
-// UPDATE room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
     const updateData = { title, price: Number(price), location, description, ac };
-
-    if(req.file){
-      updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
-    }
+    if(req.file) updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
 
     const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if(!updatedRoom) return res.status(404).json({ message: 'Room not found' });
