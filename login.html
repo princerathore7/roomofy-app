@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roomly - Login / Signup</title>
- <style>
-   body {
+  <style>
+    body {
       font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
       color: white;
@@ -24,10 +24,14 @@
       box-sizing: border-box;
       box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
- input {
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
       border-radius: 6px;
       border: 1px solid #ccc;
       font-size: 16px;
@@ -45,24 +49,34 @@
       margin-top: 8px;
       transition: background 0.2s ease-in-out;
     }
-       button:hover {
+    button:hover {
       background: darkred;
     }
-    .toggle {
+    .toggle-link {
       cursor: pointer;
       color: rgb(193, 3, 3);
       text-align: center;
-      margin-top: 12px;
+      margin-top: 8px;
       font-size: 14px;
       user-select: none;
     }
     h2 {
       color: rgb(195, 0, 0);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
-
-
+    .message {
+      text-align: center;
+      font-size: 14px;
+      min-height: 18px;
+      margin-top: 5px;
+    }
+    .message.success {
+      color: green;
+    }
+    .message.error {
+      color: red;
+    }
   </style>
 </head>
 <body>
@@ -90,14 +104,12 @@
   </div>
 
   <script>
-    const API_BASE = "http://localhost:5000/api";
+    const API_BASE = "https://roomofy-backend.onrender.com/api";
 
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
-
     const loginMessage = document.getElementById('loginMessage');
     const signupMessage = document.getElementById('signupMessage');
-
     const showSignupLink = document.getElementById('showSignup');
     const showLoginLink = document.getElementById('showLogin');
 
@@ -116,21 +128,21 @@
 
     function clearMessages() {
       loginMessage.textContent = '';
-      loginMessage.classList.remove('success');
       signupMessage.textContent = '';
-      signupMessage.classList.remove('success');
+      loginMessage.classList.remove('success', 'error');
+      signupMessage.classList.remove('success', 'error');
     }
 
-    // Login submit
+    // Login
     loginForm.addEventListener('submit', async e => {
       e.preventDefault();
       clearMessages();
-
       const mobile = document.getElementById('loginMobile').value.trim();
       const password = document.getElementById('loginPassword').value.trim();
 
       if (!mobile || !password) {
         loginMessage.textContent = "Please fill all fields";
+        loginMessage.classList.add('error');
         return;
       }
 
@@ -144,18 +156,17 @@
         if (!res.ok) {
           const err = await res.json();
           loginMessage.textContent = err.message || "Login failed";
+          loginMessage.classList.add('error');
           return;
         }
 
         const data = await res.json();
-
-        // Save token and user info
         localStorage.setItem('token', data.token);
         localStorage.setItem('mobile', data.user.mobile);
         localStorage.setItem('isAdmin', data.user.isAdmin);
 
-        loginMessage.classList.add('success');
         loginMessage.textContent = 'Login successful! Redirecting...';
+        loginMessage.classList.add('success');
 
         setTimeout(() => {
           window.location.href = 'dashboard.html';
@@ -163,10 +174,11 @@
 
       } catch (error) {
         loginMessage.textContent = "Network error, please try again later.";
+        loginMessage.classList.add('error');
       }
     });
 
-    // Signup submit
+    // Signup
     signupForm.addEventListener('submit', async e => {
       e.preventDefault();
       clearMessages();
@@ -177,10 +189,12 @@
 
       if (!mobile || !password || !confirmPassword) {
         signupMessage.textContent = "Please fill all fields";
+        signupMessage.classList.add('error');
         return;
       }
       if (password !== confirmPassword) {
         signupMessage.textContent = "Passwords do not match";
+        signupMessage.classList.add('error');
         return;
       }
 
@@ -194,13 +208,13 @@
         if (!res.ok) {
           const err = await res.json();
           signupMessage.textContent = err.message || "Signup failed";
+          signupMessage.classList.add('error');
           return;
         }
 
-        signupMessage.classList.add('success');
         signupMessage.textContent = "Signup successful! Please login.";
+        signupMessage.classList.add('success');
 
-        // Auto-switch to login after 2 seconds
         setTimeout(() => {
           signupForm.style.display = 'none';
           loginForm.style.display = 'flex';
@@ -209,6 +223,7 @@
 
       } catch (error) {
         signupMessage.textContent = "Network error, please try again later.";
+        signupMessage.classList.add('error');
       }
     });
   </script>
