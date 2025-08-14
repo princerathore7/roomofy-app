@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
@@ -13,14 +14,14 @@ const app = express();
 // CONFIG
 // -------------------
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'rv://prince242com:prince242%24@cluster0.3k2ajwh.mongodb.net/roomofy_db?retryWrites=true&w=majority&appName=Cluster0';
-const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123t';
+const MONGO_URI = process.env.MONGO_URI;
+const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 let BASE_URL = process.env.BASE_URL;
 if (!BASE_URL) {
-  BASE_URL = NODE_ENV === 'production' 
-    ? `https://roomofy-app-1.onrender.com` 
+  BASE_URL = NODE_ENV === 'production'
+    ? `https://roomofy-app-1.onrender.com`
     : `http://localhost:${PORT}`;
 }
 
@@ -36,9 +37,9 @@ console.log('⚡ BASE_URL:', BASE_URL);
 // MIDDLEWARES
 // -------------------
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true); // Postman or non-browser requests
-    if(ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     console.warn(`🚫 CORS blocked origin: ${origin}`);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
@@ -46,7 +47,13 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ensure uploads folder exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // -------------------
 // MONGO DB CONNECT
@@ -79,28 +86,32 @@ const Room = mongoose.model('Room', roomSchema);
 // MULTER CONFIG
 // -------------------
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, './uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
 });
 const upload = multer({ storage });
 
 // -------------------
-// AUTH ROUTES
+// AUTH ROUTES (UNCHANGED)
 // -------------------
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { mobile, password } = req.body;
-    if(!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+    if (!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
 
     const existingUser = await User.findOne({ mobile });
-    if(existingUser) return res.status(400).json({ message: 'Mobile already registered' });
+    if (existingUser) return res.status(400).json({ message: 'Mobile already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const newUser = new User({ mobile, passwordHash });
     await newUser.save();
 
     res.status(201).json({ message: 'User registered successfully' });
-  } catch(err) {
+  } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ message: 'Server error during signup' });
   }
@@ -109,13 +120,13 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { mobile, password } = req.body;
-    if(!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+    if (!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
 
     const user = await User.findOne({ mobile });
-    if(!user) return res.status(400).json({ message: 'Invalid mobile or password' });
+    if (!user) return res.status(400).json({ message: 'Invalid mobile or password' });
 
     const validPass = await bcrypt.compare(password, user.passwordHash);
-    if(!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
+    if (!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
 
     const token = jwt.sign(
       { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
@@ -124,59 +135,63 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
-  } catch(err) {
+  } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error during login' });
   }
 });
 
 // -------------------
-// ROOM ROUTES
+// ROOM ROUTES (FIXED)
 // -------------------
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice } = req.query;
     let filter = {};
-    if(search){
+
+    if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { location: { $regex: search, $options: 'i' } }
       ];
     }
-    if(minPrice || maxPrice){
+
+    if (minPrice || maxPrice) {
       filter.price = {};
-      if(minPrice) filter.price.$gte = Number(minPrice);
-      if(maxPrice) filter.price.$lte = Number(maxPrice);
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    const rooms = await Room.find(filter);
+    const rooms = await Room.find(filter).sort({ createdAt: -1 });
     res.json(rooms);
-  } catch(err) {
+  } catch (err) {
     console.error('Get rooms error:', err);
     res.status(500).json({ message: 'Failed to fetch rooms' });
   }
 });
 
-app.post('/api/rooms', (req, res, next) => {
-  upload.single('photo')(req, res, function(err){
-    if(err) return res.status(400).json({ message: 'File upload error: ' + err.message });
-    next();
-  });
-}, async (req, res) => {
+app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    if(!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-    if(!req.file) return res.status(400).json({ message: 'Room photo is required' });
+
+    if (!title || !price || !location || !ac) {
+      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Room photo is required' });
+    }
 
     const priceNum = Number(price);
-    if(isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be positive number' });
+    if (isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ message: 'Price must be positive number' });
+    }
 
     const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
     await newRoom.save();
 
     res.status(201).json({ message: 'Room successfully posted', room: newRoom });
-  } catch(err){
+  } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room' });
   }
@@ -185,9 +200,10 @@ app.post('/api/rooms', (req, res, next) => {
 app.delete('/api/rooms/:id', async (req, res) => {
   try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
-    if(!deleted) return res.status(404).json({ message: 'Room not found' });
+    if (!deleted) return res.status(404).json({ message: 'Room not found' });
+
     res.json({ message: 'Room deleted successfully' });
-  } catch(err){
+  } catch (err) {
     console.error('Delete room error:', err);
     res.status(500).json({ message: 'Failed to delete room' });
   }
@@ -197,13 +213,16 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
     const updateData = { title, price: Number(price), location, description, ac };
-    if(req.file) updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+
+    if (req.file) {
+      updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+    }
 
     const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if(!updatedRoom) return res.status(404).json({ message: 'Room not found' });
+    if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
 
     res.json({ message: 'Room updated successfully', room: updatedRoom });
-  } catch(err){
+  } catch (err) {
     console.error('Update room error:', err);
     res.status(500).json({ message: 'Failed to update room' });
   }
