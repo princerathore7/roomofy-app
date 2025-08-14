@@ -1,3 +1,5 @@
+// server.js
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -7,21 +9,44 @@ const multer = require('multer');
 const path = require('path');
 
 const app = express();
-app.use(cors());
+
+// -------------------
+// CONFIG
+// -------------------
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/roomofy';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5500'];
+
+// -------------------
+// MIDDLEWARES
+// -------------------
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  credentials: true,
+}));
 app.use(express.json());
 
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/roomofy', {
+// -------------------
+// MONGO DB CONNECT
+// -------------------
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// User Schema & Model
+// -------------------
+// SCHEMAS & MODELS
+// -------------------
+
+// User
 const userSchema = new mongoose.Schema({
   mobile: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
@@ -29,25 +54,23 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Room Schema & Model
+// Room
 const roomSchema = new mongoose.Schema({
   title: String,
   price: Number,
   ac: { type: String, enum: ['AC', 'Non-AC'], default: 'Non-AC' },
   location: String,
   description: String,
-  photoUrl: String, // path to uploaded photo
+  photoUrl: String,
 });
 const Room = mongoose.model('Room', roomSchema);
 
-// Multer config for uploads
+// -------------------
+// MULTER CONFIG
+// -------------------
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, './uploads/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
+  destination: (req, file, cb) => cb(null, './uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
 
@@ -89,7 +112,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = jwt.sign(
       { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
-      'your_jwt_secret_key',
+      JWT_SECRET,
       { expiresIn: '1d' }
     );
 
@@ -113,7 +136,8 @@ app.get('/rooms', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch rooms' });
   }
 });
-// Add new room with photo upload and improved error handling
+
+// Add new room
 app.post('/rooms', (req, res, next) => {
   upload.single('photo')(req, res, function(err) {
     if (err) {
@@ -139,61 +163,45 @@ app.post('/rooms', (req, res, next) => {
       return res.status(400).json({ error: 'Room photo is required' });
     }
 
-    const photoUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+    const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
 
-
-    const newRoom = new Room({
-      title,
-      price: priceNum,
-      location,
-      description,
-      ac,
-      photoUrl
-    });
-
+    const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
     await newRoom.save();
 
-    res.status(201).json({ message: 'Room successfully posted' });
+    res.status(201).json({ message: 'Room successfully posted', room: newRoom });
   } catch (error) {
     console.error('Error saving room:', error);
     res.status(500).json({ error: 'Failed to add room' });
   }
 });
 
-// Delete a room by ID
+// Delete a room
 app.delete('/rooms/:id', async (req, res) => {
   try {
     const roomId = req.params.id;
     const deleted = await Room.findByIdAndDelete(roomId);
-
     if (!deleted) return res.status(404).json({ error: 'Room not found' });
-
     res.json({ message: 'Room deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete room' });
   }
 });
 
-// Update a room by ID (optional, if you want)
+// Update a room
 app.put('/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const roomId = req.params.id;
     const { title, price, location, description, ac } = req.body;
 
-    const updateData = {
-      title,
-      price: Number(price),
-      location,
-      description,
-      ac
-    };
+    const updateData = { title, price: Number(price), location, description, ac };
 
     if (req.file) {
-      updateData.photoUrl = '/uploads/' + req.file.filename;
+      const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+      updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     }
 
     const updatedRoom = await Room.findByIdAndUpdate(roomId, updateData, { new: true });
-
     if (!updatedRoom) return res.status(404).json({ error: 'Room not found' });
 
     res.json({ message: 'Room updated successfully', room: updatedRoom });
@@ -203,10 +211,8 @@ app.put('/rooms/:id', upload.single('photo'), async (req, res) => {
 });
 
 // -------------------
-// Start server
+// START SERVER
 // -------------------
-
-const PORT = 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
