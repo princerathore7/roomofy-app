@@ -19,7 +19,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 // BASE_URL dynamic: production vs localhost
 const BASE_URL = process.env.BASE_URL || (process.env.NODE_ENV === 'production'
-  ? 'https://roomofy-backend.onrender.com'
+  ? 'https://roomofy-app-1.onrender.com'
   : `http://localhost:${PORT}`);
 
 // Allowed origins for CORS
