@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 900px;
+      max-width: 1000px;
       margin: 30px auto;
       padding: 20px;
       background: #fff;
@@ -14,7 +14,31 @@
     }
     h1 {
       text-align: center;
+      margin-bottom: 20px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
       margin-bottom: 25px;
+    }
+    .filters input, .filters button {
+      padding: 8px 12px;
+      font-size: 1rem;
+      border: 1.8px solid #d32f2f;
+      border-radius: 5px;
+      color: #d32f2f;
+    }
+    .filters button {
+      background: #d32f2f;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .filters button:hover {
+      background: #b71c1c;
     }
     .room-list {
       display: grid;
@@ -95,11 +119,21 @@
 </head>
 <body>
   <h1>Available Rooms</h1>
+
+  <div class="filters">
+    <input type="text" id="searchInput" placeholder="Search by title or location" />
+    <input type="number" id="minPrice" placeholder="Min Price" />
+    <input type="number" id="maxPrice" placeholder="Max Price" />
+    <button id="filterBtn">Apply Filter</button>
+  </div>
+
   <div class="room-list" id="roomList"></div>
 
   <script>
     const API_BASE = 'https://roomofy-app-1.onrender.com/api';
     const roomListDiv = document.getElementById('roomList');
+
+    let allRooms = []; // Store fetched rooms
 
     function generateWhatsAppLink(room) {
       const message = encodeURIComponent(
@@ -113,6 +147,35 @@
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
 
+    function displayRooms(rooms) {
+      if(rooms.length === 0){
+        roomListDiv.textContent = 'No rooms match your criteria';
+        return;
+      }
+      roomListDiv.innerHTML = rooms.map(room => `
+        <div class="room-card">
+          <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+          <div class="room-info">
+            <div class="room-title">${room.title}</div>
+            <div class="room-price">₹${room.price}</div>
+            <div class="room-details">${room.ac} | ${room.location}</div>
+            <div class="room-desc">${room.description || ''}</div>
+          </div>
+          <div class="actions">
+            <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
+            <select class="rating-select" aria-label="Rate this room" onchange="alert('You rated this room ' + this.value + ' star(s)! Thanks!')">
+              <option value="" disabled selected>Rate</option>
+              <option value="1">1 ★</option>
+              <option value="2">2 ★★</option>
+              <option value="3">3 ★★★</option>
+              <option value="4">4 ★★★★</option>
+              <option value="5">5 ★★★★★</option>
+            </select>
+          </div>
+        </div>
+      `).join('');
+    }
+
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/rooms`);
@@ -120,38 +183,28 @@
           roomListDiv.textContent = 'Failed to load rooms';
           return;
         }
-        const rooms = await res.json();
-        if (rooms.length === 0) {
-          roomListDiv.textContent = 'No rooms available';
-          return;
-        }
-
-        roomListDiv.innerHTML = rooms.map(room => `
-          <div class="room-card">
-            <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
-            <div class="room-info">
-              <div class="room-title">${room.title}</div>
-              <div class="room-price">₹${room.price}</div>
-              <div class="room-details">${room.ac} | ${room.location}</div>
-              <div class="room-desc">${room.description || ''}</div>
-            </div>
-            <div class="actions">
-              <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
-              <select class="rating-select" aria-label="Rate this room" onchange="alert('You rated this room ' + this.value + ' star(s)! Thanks!')">
-                <option value="" disabled selected>Rate</option>
-                <option value="1">1 ★</option>
-                <option value="2">2 ★★</option>
-                <option value="3">3 ★★★</option>
-                <option value="4">4 ★★★★</option>
-                <option value="5">5 ★★★★★</option>
-              </select>
-            </div>
-          </div>
-        `).join('');
+        allRooms = await res.json();
+        displayRooms(allRooms);
       } catch (err) {
         roomListDiv.textContent = 'Network error. Please try again later.';
       }
     }
+
+    function applyFilter() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const minPrice = Number(document.getElementById('minPrice').value) || 0;
+      const maxPrice = Number(document.getElementById('maxPrice').value) || Infinity;
+
+      const filtered = allRooms.filter(room => {
+        const matchText = room.title.toLowerCase().includes(searchTerm) || room.location.toLowerCase().includes(searchTerm);
+        const matchPrice = room.price >= minPrice && room.price <= maxPrice;
+        return matchText && matchPrice;
+      });
+
+      displayRooms(filtered);
+    }
+
+    document.getElementById('filterBtn').addEventListener('click', applyFilter);
 
     fetchRooms();
   </script>

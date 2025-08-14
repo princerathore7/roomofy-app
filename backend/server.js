@@ -31,10 +31,9 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 // -------------------
 app.use(cors({
   origin: function(origin, callback){
-    console.log('Incoming request from origin:', origin);
-    if(!origin) return callback(null, true); // Postman or non-browser
+    if(!origin) return callback(null, true); // Postman or non-browser requests
     if(ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS policy: This origin (${origin}) is not allowed`), false);
+    return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
   credentials: true
 }));
@@ -130,9 +129,26 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 // ROOM ROUTES
 // -------------------
+
+// Get rooms with optional search & price filter
 app.get('/api/rooms', async (req, res) => {
   try {
-    const rooms = await Room.find();
+    const { search, minPrice, maxPrice } = req.query;
+
+    let filter = {};
+    if(search){
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if(minPrice || maxPrice){
+      filter.price = {};
+      if(minPrice) filter.price.$gte = Number(minPrice);
+      if(maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const rooms = await Room.find(filter);
     res.json(rooms);
   } catch(err) {
     console.error('Get rooms error:', err);
@@ -140,6 +156,7 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
+// Add new room
 app.post('/api/rooms', (req, res, next) => {
   upload.single('photo')(req, res, function(err){
     if(err){
@@ -172,6 +189,7 @@ app.post('/api/rooms', (req, res, next) => {
   }
 });
 
+// Delete room
 app.delete('/api/rooms/:id', async (req, res) => {
   try{
     const deleted = await Room.findByIdAndDelete(req.params.id);
@@ -183,6 +201,7 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
+// Update room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try{
     const { title, price, location, description, ac } = req.body;
