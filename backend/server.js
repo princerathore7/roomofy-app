@@ -1,108 +1,211 @@
-// server.js (Roomofy backend)
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+// -------------------
+// CONFIG
+// -------------------
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'roomofysecret';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/roomofy_db';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/roomofy';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// -------- MongoDB connection --------
+// BASE_URL dynamic: production vs localhost
+const BASE_URL = process.env.BASE_URL || 
+  (NODE_ENV === 'production' ? `https://roomofy-app-1.onrender.com` : `http://localhost:${PORT}`);
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:5500', 'https://roomofy.netlify.app', 'https://roomofy-app-1.onrender.com'];
+
+// -------------------
+// MIDDLEWARES
+// -------------------
+app.use(cors({
+  origin: function(origin, callback){
+    console.log('Incoming request from origin:', origin);
+    if(!origin) return callback(null, true); // Postman or non-browser
+    if(ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS policy: This origin (${origin}) is not allowed`), false);
+  },
+  credentials: true
+}));
+
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// -------------------
+// MONGO DB CONNECT
+// -------------------
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('MongoDB error:', err));
+})
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
-// -------- Schemas --------
+// -------------------
+// SCHEMAS & MODELS
+// -------------------
+const userSchema = new mongoose.Schema({
+  mobile: { type: String, unique: true, required: true },
+  passwordHash: { type: String, required: true },
+  isAdmin: { type: Boolean, default: false }
+});
+const User = mongoose.model('User', userSchema);
+
 const roomSchema = new mongoose.Schema({
   title: String,
   price: Number,
-  ac: String,
+  ac: { type: String, enum: ['AC', 'Non-AC'], default: 'Non-AC' },
   location: String,
-  photoUrl: String,
   description: String,
+  photoUrl: String,
 });
-
-const userSchema = new mongoose.Schema({
-  username: String,
-  passwordHash: String,
-});
-
 const Room = mongoose.model('Room', roomSchema);
-const User = mongoose.model('User', userSchema);
 
-// -------- Routes --------
+// -------------------
+// MULTER CONFIG
+// -------------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, './uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
-// GET all rooms
-app.get('/rooms', async (req, res) => {
+// -------------------
+// AUTH ROUTES
+// -------------------
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { mobile, password } = req.body;
+    if(!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+
+    const existingUser = await User.findOne({ mobile });
+    if(existingUser) return res.status(400).json({ message: 'Mobile already registered' });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = new User({ mobile, passwordHash });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch(err) {
+    console.error('Signup error:', err);
+    res.status(500).json({ message: 'Server error during signup' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { mobile, password } = req.body;
+    if(!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+
+    const user = await User.findOne({ mobile });
+    if(!user) return res.status(400).json({ message: 'Invalid mobile or password' });
+
+    const validPass = await bcrypt.compare(password, user.passwordHash);
+    if(!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
+
+    const token = jwt.sign(
+      { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
+  } catch(err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// -------------------
+// ROOM ROUTES
+// -------------------
+app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find();
     res.json(rooms);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch rooms' });
+  } catch(err) {
+    console.error('Get rooms error:', err);
+    res.status(500).json({ message: 'Failed to fetch rooms' });
   }
 });
 
-// POST create room (admin only, simple auth)
-app.post('/rooms', async (req, res) => {
+app.post('/api/rooms', (req, res, next) => {
+  upload.single('photo')(req, res, function(err){
+    if(err){
+      console.error('Multer error:', err);
+      return res.status(400).json({ message: 'File upload error: ' + err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
-    const { title, price, ac, location, photoUrl, description } = req.body;
-    const room = new Room({ title, price, ac, location, photoUrl, description });
-    await room.save();
-    res.json({ success: true, room });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create room' });
+    const { title, price, location, description, ac } = req.body;
+
+    if(!title || !price || !location || !ac){
+      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC are required' });
+    }
+
+    if(!req.file) return res.status(400).json({ message: 'Room photo is required' });
+
+    const priceNum = Number(price);
+    if(isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be a valid positive number' });
+
+    const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+    const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
+    await newRoom.save();
+
+    res.status(201).json({ message: 'Room successfully posted', room: newRoom });
+  } catch(err){
+    console.error('Add room error:', err);
+    res.status(500).json({ message: 'Failed to add room' });
   }
 });
 
-// -------- Auth routes --------
-app.post('/auth/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Username & password required' });
-
-    const existing = await User.findOne({ username });
-    if (existing) return res.status(400).json({ message: 'Username exists' });
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = new User({ username, passwordHash });
-    await user.save();
-
-    const token = jwt.sign({ userId: user._id, username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+app.delete('/api/rooms/:id', async (req, res) => {
+  try{
+    const deleted = await Room.findByIdAndDelete(req.params.id);
+    if(!deleted) return res.status(404).json({ message: 'Room not found' });
+    res.json({ message: 'Room deleted successfully' });
+  } catch(err){
+    console.error('Delete room error:', err);
+    res.status(500).json({ message: 'Failed to delete room' });
   }
 });
 
-app.post('/auth/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
+  try{
+    const { title, price, location, description, ac } = req.body;
+    const updateData = { title, price: Number(price), location, description, ac };
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+    if(req.file){
+      updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+    }
 
-    const token = jwt.sign({ userId: user._id, username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if(!updatedRoom) return res.status(404).json({ message: 'Room not found' });
+
+    res.json({ message: 'Room updated successfully', room: updatedRoom });
+  } catch(err){
+    console.error('Update room error:', err);
+    res.status(500).json({ message: 'Failed to update room' });
   }
 });
 
-// -------- Start server --------
+// -------------------
+// START SERVER
+// -------------------
 app.listen(PORT, () => {
-  console.log(`✅ Roomofy server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`BASE_URL: ${BASE_URL}`);
 });
