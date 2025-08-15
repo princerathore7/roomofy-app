@@ -23,7 +23,7 @@
       justify-content: center;
       margin-bottom: 25px;
     }
-    .filters input, .filters button {
+    .filters input, .filters select, .filters button {
       padding: 8px 12px;
       font-size: 1rem;
       border: 1.8px solid #d32f2f;
@@ -57,8 +57,9 @@
     }
     .room-card img {
       width: 100%;
-      height: 180px;
+      height: 200px;
       object-fit: cover;
+      display: block;
     }
     .room-info {
       padding: 15px;
@@ -122,8 +123,18 @@
 
   <div class="filters">
     <input type="text" id="searchInput" placeholder="Search by title or location" />
-    <input type="number" id="minPrice" placeholder="Min Price" />
-    <input type="number" id="maxPrice" placeholder="Max Price" />
+    <select id="priceRange">
+      <option value="">All Prices</option>
+      <option value="400-600">₹400 - ₹600</option>
+      <option value="600-1000">₹600 - ₹1000</option>
+      <option value="1000-1400">₹1000 - ₹1400</option>
+      <option value="1400-2000">₹1400 - ₹2000</option>
+      <option value="2000-3000">₹2000 - ₹3000</option>
+      <option value="3000-4000">₹3000 - ₹4000</option>
+      <option value="4000-5000">₹4000 - ₹5000</option>
+      <option value="5000-6000">₹5000 - ₹6000</option>
+      <option value="6000-7000">₹6000 - ₹7000</option>
+    </select>
     <button id="filterBtn">Apply Filter</button>
   </div>
 
@@ -132,8 +143,7 @@
   <script>
     const API_BASE = 'https://roomofy-app-1.onrender.com/api';
     const roomListDiv = document.getElementById('roomList');
-
-    let allRooms = []; // Store fetched rooms
+    let allRooms = [];
 
     function generateWhatsAppLink(room) {
       const message = encodeURIComponent(
@@ -143,7 +153,7 @@
         `AC/Non-AC: ${room.ac}\n` +
         `Location: ${room.location}`
       );
-      const whatsappNumber = '917024205530'; // apna number yahan daalo
+      const whatsappNumber = '917024205530';
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
 
@@ -153,7 +163,7 @@
         return;
       }
       roomListDiv.innerHTML = rooms.map(room => `
-        <div class="room-card">
+        <div class="room-card" data-price="${room.price}">
           <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
           <div class="room-info">
             <div class="room-title">${room.title}</div>
@@ -192,8 +202,12 @@
 
     function applyFilter() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const minPrice = Number(document.getElementById('minPrice').value) || 0;
-      const maxPrice = Number(document.getElementById('maxPrice').value) || Infinity;
+      const range = document.getElementById('priceRange').value;
+      let minPrice = 0, maxPrice = Infinity;
+
+      if (range) {
+        [minPrice, maxPrice] = range.split('-').map(Number);
+      }
 
       const filtered = allRooms.filter(room => {
         const matchText = room.title.toLowerCase().includes(searchTerm) || room.location.toLowerCase().includes(searchTerm);
@@ -205,7 +219,6 @@
     }
 
     document.getElementById('filterBtn').addEventListener('click', applyFilter);
-
     fetchRooms();
   </script>
 </body>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Delete Room</title>
+  <title>Delete / Hide Room</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,6 +64,12 @@
       margin-top: 10px;
     }
     button:hover { background: #b71c1c; }
+    .hide-btn {
+      background: #f57c00;
+    }
+    .hide-btn:hover {
+      background: #e65100;
+    }
     .msg {
       font-weight: bold;
       margin-top: 10px;
@@ -75,7 +81,7 @@
 </head>
 <body>
 
-  <h2>Delete Rooms</h2>
+  <h2>Delete / Hide Rooms</h2>
   <div id="message" class="msg"></div>
   <div class="room-list" id="roomList"></div>
 
@@ -84,6 +90,7 @@
     const roomListDiv = document.getElementById('roomList');
     const msgDiv = document.getElementById('message');
 
+    // Fetch and display rooms
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/rooms`);
@@ -102,15 +109,19 @@
               <div class="room-price">₹${room.price}</div>
               <div class="room-details">${room.ac} | ${room.location}</div>
               <button onclick="deleteRoom('${room._id}')">Delete</button>
+              <button class="hide-btn" onclick="toggleHide('${room._id}', ${room.isHidden ? 'false' : 'true'})">
+                ${room.isHidden ? 'Unhide' : 'Hide'}
+              </button>
             </div>
           </div>
         `).join('');
       } catch (err) {
         msgDiv.textContent = 'Network error. Please try again later.';
-        msgDiv.classList.add('error');
+        msgDiv.className = 'msg error';
       }
     }
 
+    // Delete a room
     async function deleteRoom(id) {
       if (!confirm('Are you sure you want to delete this room?')) return;
 
@@ -132,7 +143,32 @@
       }
     }
 
+    // Hide / Unhide a room
+    async function toggleHide(id, hideStatus) {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${id}/hide`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isHidden: hideStatus })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          msgDiv.textContent = `Room ${hideStatus ? 'hidden' : 'unhidden'} successfully!`;
+          msgDiv.className = 'msg success';
+          fetchRooms(); // refresh list
+        } else {
+          msgDiv.textContent = data.error || 'Failed to update hide status';
+          msgDiv.className = 'msg error';
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Network error. Please try again later.';
+        msgDiv.className = 'msg error';
+      }
+    }
+
     fetchRooms();
   </script>
 </body>
 </html>
+

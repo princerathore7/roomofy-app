@@ -86,7 +86,9 @@ const roomSchema = new mongoose.Schema({
   location: String,
   description: String,
   photoUrl: String,
-});
+  isHidden: { type: Boolean, default: false } // 👈 ADD THIS LINE
+}, { timestamps: true });
+
 const Room = mongoose.model('Room', roomSchema);
 
 // -------------------
@@ -154,7 +156,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice } = req.query;
-    let filter = {};
+    let filter = { isHidden: false }; // 👈 default show only visible
 
     if (search) {
       filter.$or = [
@@ -176,6 +178,7 @@ app.get('/api/rooms', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch rooms' });
   }
 });
+
 
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
@@ -233,7 +236,19 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
     console.error('Update room error:', err);
     res.status(500).json({ message: 'Failed to update room' });
   }
+  //hide and UNHIDE ROOMS
+});app.patch("/api/rooms/:id/hide", async (req, res) => {
+  try {
+    const { isHidden } = req.body;
+    const room = await Room.findByIdAndUpdate(req.params.id, { isHidden }, { new: true });
+    if (!room) return res.status(404).json({ error: "Room not found" });
+    res.json({ message: "Room status updated", room });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
+
+
 
 // -------------------
 // START SERVER
