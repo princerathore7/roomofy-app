@@ -150,34 +150,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// -------------------
-// ROOM ROUTES (FIXED)
-// -------------------
-app.get('/api/rooms', async (req, res) => {
-  try {
-    const { search, minPrice, maxPrice } = req.query;
-    let filter = { isHidden: false }; // 👈 default show only visible
 
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
-    }
-
-    const rooms = await Room.find(filter).sort({ createdAt: -1 });
-    res.json(rooms);
-  } catch (err) {
-    console.error('Get rooms error:', err);
-    res.status(500).json({ message: 'Failed to fetch rooms' });
-  }
-});
 
 
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
@@ -248,6 +221,36 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Backend: GET /api/rooms
+app.get('/api/rooms', async (req, res) => {
+  try {
+    const { search, minPrice, maxPrice, showHidden } = req.query;
+    let filter = {};
+
+    if (!showHidden || showHidden === 'false') {
+      filter.isHidden = false; // dashboard me hidden rooms chhupaye
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const rooms = await Room.find(filter).sort({ createdAt: -1 });
+    res.json(rooms);
+  } catch (err) {
+    console.error('Get rooms error:', err);
+    res.status(500).json({ message: 'Failed to fetch rooms' });
+  }
+});
 
 
 // -------------------

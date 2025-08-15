@@ -93,7 +93,8 @@
     // Fetch and display rooms
     async function fetchRooms() {
       try {
-        const res = await fetch(`${API_BASE}/rooms`);
+        const res = await fetch(`${API_BASE}/rooms?showHidden=true`);
+
         const rooms = await res.json();
 
         if (!res.ok || rooms.length === 0) {

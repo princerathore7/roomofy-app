@@ -56,11 +56,12 @@
       justify-content: space-between;
     }
     .room-card img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      display: block;
-    }
+  width: 100%;       /* card ke width ke andar scale */
+  height: auto;      /* aspect ratio maintain */
+  object-fit: contain; /* crop nahi hoga */
+  display: block;
+}
+
     .room-info {
       padding: 15px;
       flex-grow: 1;
