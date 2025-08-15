@@ -58,9 +58,16 @@ app.use('/uploads', express.static(uploadsDir));
 // -------------------
 // MONGO DB CONNECT
 // -------------------
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000 // max wait 5 sec
+})
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err.message);
+  process.exit(1); // fail fast so Render stops
+});
 
 // -------------------
 // SCHEMAS & MODELS

@@ -4,8 +4,9 @@
   "description": "Roomly backend server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
