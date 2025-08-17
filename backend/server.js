@@ -11,10 +11,8 @@ const cloudinary = require('cloudinary').v2;
 // -------------------
 // CLOUDINARY SETUP
 // -------------------
-console.log('Cloudinary env:', {
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+cloudinary.config({
+  secure: true, // use HTTPS
 });
 
 const storage = new CloudinaryStorage({
@@ -22,8 +20,8 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'roomofy_rooms',
     allowed_formats: ['jpg', 'jpeg', 'png'],
-    transformation: [{ width: 800, height: 600, crop: "limit" }]
-  }
+    transformation: [{ width: 800, height: 600, crop: 'limit' }],
+  },
 });
 
 const upload = multer({ storage });
@@ -41,12 +39,12 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : ['http://localhost:5500'];
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json());
@@ -67,11 +65,11 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 const userSchema = new mongoose.Schema({
   mobile: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
-  isAdmin: { type: Boolean, default: false }
+  isAdmin: { type: Boolean, default: false },
 });
 const User = mongoose.model('User', userSchema);
 
-const Room = require("./models/Room");
+const Room = require('./models/Room');
 
 // -------------------
 // AUTH ROUTES
@@ -91,7 +89,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Signup error:', err);
-    res.status(500).json({ message: 'Server error during signup' });
+    res.status(500).json({ message: 'Server error during signup', error: err.message });
   }
 });
 
@@ -106,21 +104,29 @@ app.post('/api/auth/login', async (req, res) => {
     const validPass = await bcrypt.compare(password, user.passwordHash);
     if (!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
 
-    const token = jwt.sign({ userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign(
+      { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error during login', error: err.message });
   }
 });
 
 // -------------------
 // ROOM ROUTES
 // -------------------
+
+// POST room
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    if (!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
+    if (!title || !price || !location || !ac)
+      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const newRoom = new Room({
@@ -129,17 +135,21 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       location,
       description,
       ac,
-      photo: req.file.path
+      photo: req.file.path,
     });
 
     await newRoom.save();
     res.status(201).json({ message: 'Room posted successfully', room: newRoom });
   } catch (err) {
     console.error('Add room error:', err);
-    res.status(500).json({ message: 'Failed to add room', error: err.message });
+    res.status(500).json({
+      message: 'Failed to add room',
+      error: err?.response?.body || err?.message || err,
+    });
   }
 });
 
+// UPDATE room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -148,7 +158,7 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
       ...(price && { price: Number(price) }),
       ...(location && { location }),
       ...(description && { description }),
-      ...(ac && { ac })
+      ...(ac && { ac }),
     };
     if (req.file) updateData.photo = req.file.path;
 
@@ -158,26 +168,30 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
     res.json({ message: 'Room updated successfully', room: updatedRoom });
   } catch (err) {
     console.error('Update room error:', err);
-    res.status(500).json({ message: 'Failed to update room' });
+    res.status(500).json({ message: 'Failed to update room', error: err.message });
   }
 });
 
+// GET rooms
 app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find().sort({ createdAt: -1 });
     res.json(rooms);
   } catch (err) {
     console.error('Get rooms error:', err);
-    res.status(500).json({ message: 'Failed to fetch rooms' });
+    res.status(500).json({ message: 'Failed to fetch rooms', error: err.message });
   }
 });
 
 // -------------------
-// ERROR HANDLING (JSON only)
+// GLOBAL ERROR HANDLER (JSON only)
 // -------------------
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message });
+  res.status(500).json({
+    message: 'Internal Server Error',
+    error: err?.response?.body || err?.message || err,
+  });
 });
 
 // -------------------
