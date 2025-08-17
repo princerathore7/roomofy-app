@@ -1,3 +1,8 @@
+// -------------------
+// BACKEND SERVER - ROOMOFY
+// Fully ready-to-use with Cloudinary + MongoDB + JWT + Multer
+// -------------------
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -10,10 +15,11 @@ const cloudinary = require('cloudinary').v2;
 
 // -------------------
 // CLOUDINARY SETUP
+// Make sure you have this in your .env:
+// CLOUDINARY_URL=cloudinary://<API_KEY>:<API_SECRET>@<CLOUD_NAME>
+// Example: CLOUDINARY_URL=cloudinary://948692556859643:zYEMVv-LFiJidIGpkS5ZlOEzeEo@roomofy
 // -------------------
-cloudinary.config({
-  secure: true, // use HTTPS
-});
+cloudinary.config({ secure: true }); // HTTPS uploads
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -34,13 +40,14 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123';
 
+// CORS setup
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:5500'];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // Postman or curl
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
@@ -50,7 +57,7 @@ app.use(cors({
 app.use(express.json());
 
 // -------------------
-// MONGODB CONNECT
+// MONGODB CONNECTION
 // -------------------
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
@@ -69,7 +76,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-const Room = require('./models/Room');
+const Room = require('./models/Room'); // Make sure this exists
 
 // -------------------
 // AUTH ROUTES
@@ -104,11 +111,7 @@ app.post('/api/auth/login', async (req, res) => {
     const validPass = await bcrypt.compare(password, user.passwordHash);
     if (!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
 
-    const token = jwt.sign(
-      { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const token = jwt.sign({ userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '1d' });
 
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
   } catch (err) {
@@ -184,7 +187,7 @@ app.get('/api/rooms', async (req, res) => {
 });
 
 // -------------------
-// GLOBAL ERROR HANDLER (JSON only)
+// GLOBAL ERROR HANDLER
 // -------------------
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -200,3 +203,13 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
+/* 
+✅ Ready-to-use backend with:
+- Full Cloudinary + Multer file upload
+- MongoDB connection
+- User signup/login with bcrypt + JWT
+- Room CRUD (POST, PUT, GET)
+- Full error logging for debugging
+- CORS setup
+*/
