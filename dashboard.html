@@ -120,8 +120,8 @@
 
       roomListDiv.innerHTML = rooms.map(room => `
         <div class="room-card" data-price="${room.price}">
-<img src="${room.photoUrl}" alt="${room.title}" />
-
+<img src="${room.photoUrl || (room.photo ? `https://roomofy-app-1.onrender.com/uploads/${room.photo}` : '')}" 
+     alt="${room.title}" />
 
           <div class="room-info">
             <div class="room-title">${room.title}</div>
