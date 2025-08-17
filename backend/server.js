@@ -144,6 +144,8 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 // ROOM ROUTES
 // -------------------
+
+// ✅ Add new room (photoUrl will always have correct BASE_URL)
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -160,7 +162,6 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ message: 'Price must be positive number' });
     }
 
-    // store a full URL so frontend can use it directly
     const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
     await newRoom.save();
@@ -172,6 +173,7 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   }
 });
 
+// ✅ Delete room
 app.delete('/api/rooms/:id', async (req, res) => {
   try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
@@ -184,6 +186,7 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
+// ✅ Update room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -209,7 +212,7 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
-// Hide / Unhide rooms
+// ✅ Hide / Unhide rooms
 app.patch("/api/rooms/:id/hide", async (req, res) => {
   try {
     const { isHidden } = req.body;
@@ -222,8 +225,8 @@ app.patch("/api/rooms/:id/hide", async (req, res) => {
   }
 });
 
-// Add rating to a room
-app.post('/rooms/:id/rating', async (req, res) => {
+// ✅ Add rating
+app.post('/api/rooms/:id/rating', async (req, res) => {
   try {
     let { rating } = req.body;
     rating = Number(rating);
@@ -246,8 +249,7 @@ app.post('/rooms/:id/rating', async (req, res) => {
   }
 });
 
-
-// Get rooms (with filters + average rating)
+// ✅ Get rooms (with filters + average rating)
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice, showHidden } = req.query;
