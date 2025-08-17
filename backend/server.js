@@ -5,42 +5,48 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
 
-const app = express();
+// -------------------
+// CLOUDINARY SETUP
+// -------------------
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'roomofy_rooms',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 800, height: 600, crop: "limit" }]
+  }
+});
+
+const upload = multer({ storage });
 
 // -------------------
-// CONFIG
+// EXPRESS SETUP
 // -------------------
+const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-let BASE_URL = process.env.BASE_URL;
-if (!BASE_URL) {
-  BASE_URL = NODE_ENV === 'production'
-    ? `https://roomofy-app-1.onrender.com`
-    : `http://localhost:${PORT}`;
-}
-
-// Allowed origins from .env
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5500', 'http://127.0.0.1:5500'];
+  : ['http://localhost:5500'];
 
-console.log('⚡ ALLOWED_ORIGINS:', ALLOWED_ORIGINS);
-console.log('⚡ BASE_URL:', BASE_URL);
-
-// -------------------
-// MIDDLEWARES
-// -------------------
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); 
+    if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    console.warn(`🚫 CORS blocked origin: ${origin}`);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
   },
   credentials: true
@@ -48,22 +54,15 @@ app.use(cors({
 
 app.use(express.json());
 
-// Serve uploaded images
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // -------------------
-// MONGO DB CONNECT
+// MONGO DB
 // -------------------
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000
-})
-.then(() => console.log('✅ MongoDB connected'))
-.catch(err => {
-  console.error('❌ MongoDB connection error:', err.message);
-  process.exit(1);
-});
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1);
+  });
 
 // -------------------
 // MODELS
@@ -76,23 +75,6 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const Room = require("./models/Room");
-
-// -------------------
-// MULTER CONFIG (disk storage)
-// -------------------
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = './uploads';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
-const upload = multer({ storage: storage });
 
 // -------------------
 // AUTH ROUTES
@@ -127,12 +109,7 @@ app.post('/api/auth/login', async (req, res) => {
     const validPass = await bcrypt.compare(password, user.passwordHash);
     if (!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
 
-    const token = jwt.sign(
-      { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
+    const token = jwt.sign({ userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '1d' });
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error('Login error:', err);
@@ -144,13 +121,11 @@ app.post('/api/auth/login', async (req, res) => {
 // ROOM ROUTES
 // -------------------
 
-// Add new room (Multer-only)
+// Add room
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    if (!title || !price || !location || !ac) {
-      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-    }
+    if (!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const newRoom = new Room({
@@ -159,129 +134,46 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       location,
       description,
       ac,
-      photo: `${BASE_URL}/uploads/${req.file.filename}`
+      photo: req.file.path // Cloudinary URL
     });
 
     await newRoom.save();
     res.status(201).json({ message: 'Room successfully posted', room: newRoom });
-
   } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room', error: err.message });
   }
 });
 
-// Delete room
-app.delete('/api/rooms/:id', async (req, res) => {
-  try {
-    const deleted = await Room.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Room not found' });
-
-    // Remove local file
-    if (deleted.photo) {
-      const filePath = path.join(__dirname, 'uploads', path.basename(deleted.photo));
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
-
-    res.json({ message: 'Room deleted successfully' });
-  } catch (err) {
-    console.error('Delete room error:', err);
-    res.status(500).json({ message: 'Failed to delete room' });
-  }
-});
-
-// Update room (with optional file upload)
+// Update room (optional new photo)
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
     const updateData = {
-      ...(title !== undefined && { title }),
-      ...(price !== undefined && { price: Number(price) }),
-      ...(location !== undefined && { location }),
-      ...(description !== undefined && { description }),
-      ...(ac !== undefined && { ac })
+      ...(title && { title }),
+      ...(price && { price: Number(price) }),
+      ...(location && { location }),
+      ...(description && { description }),
+      ...(ac && { ac })
     };
 
-    if (req.file) {
-      updateData.photo = `${BASE_URL}/uploads/${req.file.filename}`;
-
-      // Remove old photo
-      const room = await Room.findById(req.params.id);
-      if (room && room.photo) {
-        const oldPath = path.join(__dirname, 'uploads', path.basename(room.photo));
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-    }
+    if (req.file) updateData.photo = req.file.path;
 
     const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
 
     res.json({ message: 'Room updated successfully', room: updatedRoom });
-
   } catch (err) {
     console.error('Update room error:', err);
     res.status(500).json({ message: 'Failed to update room' });
   }
 });
 
-// Hide/Unhide rooms
-app.patch("/api/rooms/:id/hide", async (req, res) => {
-  try {
-    const { isHidden } = req.body;
-    const room = await Room.findByIdAndUpdate(req.params.id, { isHidden: !!isHidden }, { new: true });
-    if (!room) return res.status(404).json({ error: "Room not found" });
-    res.json({ message: "Room status updated", room });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Add rating
-app.post('/api/rooms/:id/rating', async (req, res) => {
-  try {
-    let { rating } = req.body;
-    rating = Number(rating);
-    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be between 1 and 5' });
-
-    const room = await Room.findById(req.params.id);
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-
-    room.ratings.push(rating);
-    await room.save();
-    const avgRating = room.ratings.reduce((a, b) => a + b, 0) / room.ratings.length;
-    res.json({ message: 'Rating added successfully', avgRating });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to add rating' });
-  }
-});
-
 // Get rooms
 app.get('/api/rooms', async (req, res) => {
   try {
-    const { search, minPrice, maxPrice, showHidden } = req.query;
-    let filter = {};
-    if (!showHidden || showHidden === 'false') filter.isHidden = false;
-
-    if (search) filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { location: { $regex: search, $options: 'i' } }
-    ];
-
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
-    }
-
-    const rooms = await Room.find(filter).sort({ createdAt: -1 });
-    const roomsWithAvg = rooms.map(r => {
-      const ratings = Array.isArray(r.ratings) ? r.ratings : [];
-      const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-      return { ...r.toObject(), averageRating: Number(avg.toFixed(1)) };
-    });
-
-    res.json(roomsWithAvg);
+    const rooms = await Room.find().sort({ createdAt: -1 });
+    res.json(rooms);
   } catch (err) {
     console.error('Get rooms error:', err);
     res.status(500).json({ message: 'Failed to fetch rooms' });
@@ -293,5 +185,4 @@ app.get('/api/rooms', async (req, res) => {
 // -------------------
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`BASE_URL: ${BASE_URL}`);
 });
