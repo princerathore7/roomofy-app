@@ -117,14 +117,10 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 // ROOM ROUTES
 // -------------------
-
-// POST room
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    if (!title || !price || !location || !ac) {
-      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-    }
+    if (!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const newRoom = new Room({
@@ -133,7 +129,7 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       location,
       description,
       ac,
-      photo: req.file.path // Cloudinary URL
+      photo: req.file.path
     });
 
     await newRoom.save();
@@ -144,7 +140,6 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   }
 });
 
-// UPDATE room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -155,7 +150,6 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
       ...(description && { description }),
       ...(ac && { ac })
     };
-
     if (req.file) updateData.photo = req.file.path;
 
     const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
@@ -168,7 +162,6 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
-// GET rooms
 app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find().sort({ createdAt: -1 });
@@ -177,6 +170,14 @@ app.get('/api/rooms', async (req, res) => {
     console.error('Get rooms error:', err);
     res.status(500).json({ message: 'Failed to fetch rooms' });
   }
+});
+
+// -------------------
+// ERROR HANDLING (JSON only)
+// -------------------
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
 // -------------------
