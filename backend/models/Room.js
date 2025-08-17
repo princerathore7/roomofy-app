@@ -6,7 +6,7 @@ const roomSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   description: { type: String },
   ac: { type: String, enum: ["AC", "Non-AC"], default: "Non-AC" },
-  photoUrl: { type: String },   // 👈 ADD THIS LINE
+photo: { type: String, required: true },
     ratings: [{ type: Number, min: 1, max: 5 }], 
   isHidden: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }

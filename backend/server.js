@@ -145,7 +145,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ROOM ROUTES
 // -------------------
 
-// ✅ Add new room (photoUrl will always have correct BASE_URL)
+// ✅ Add new room (store only filename, not full URL)
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -162,11 +162,22 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ message: 'Price must be positive number' });
     }
 
-    const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
-    const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
+    // 🟢 save only filename in DB
+    const newRoom = new Room({ 
+      title, 
+      price: priceNum, 
+      location, 
+      description, 
+      ac, 
+      photo: req.file.filename  
+    });
+
     await newRoom.save();
 
-    res.status(201).json({ message: 'Room successfully posted', room: newRoom });
+    res.status(201).json({ 
+      message: 'Room successfully posted', 
+      room: newRoom 
+    });
   } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room' });
@@ -187,9 +198,12 @@ app.delete('/api/rooms/:id', async (req, res) => {
 });
 
 // ✅ Update room
+// ✅ Update room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
+
+    // sirf wahi fields update karo jo aayi hain
     const updateData = {
       ...(title !== undefined && { title }),
       ...(price !== undefined && { price: Number(price) }),
@@ -198,12 +212,20 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
       ...(ac !== undefined && { ac })
     };
 
+    // ✅ yaha sirf filename save karo
     if (req.file) {
-      updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+      updateData.photo = req.file.filename;
     }
 
-    const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
+    const updatedRoom = await Room.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
 
     res.json({ message: 'Room updated successfully', room: updatedRoom });
   } catch (err) {
