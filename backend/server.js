@@ -165,7 +165,7 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
         location,
         description,
         ac,
-        photoUrl: result.secure_url
+        photo: result.secure_url
       });
 
       await newRoom.save();
@@ -211,7 +211,7 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
           console.error('Cloudinary upload error:', error);
           return res.status(500).json({ message: 'Failed to upload image' });
         }
-        updateData.photoUrl = result.secure_url;
+        updateData.photo = result.secure_url;
         const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
         res.json({ message: 'Room updated successfully', room: updatedRoom });
