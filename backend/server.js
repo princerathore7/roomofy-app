@@ -142,12 +142,19 @@ app.post('/api/auth/login', async (req, res) => {
 // Add new room with Cloudinary upload
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
+    console.log('⚡ POST /api/rooms called');
+    console.log('Form body:', req.body);
+    console.log('Uploaded file info:', req.file);
+
     const { title, price, location, description, ac } = req.body;
 
     if (!title || !price || !location || !ac) {
       return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     }
-    if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
+    if (!req.file) {
+      console.error('❌ No file uploaded');
+      return res.status(400).json({ message: 'Room photo is required' });
+    }
 
     const priceNum = Number(price);
     if (isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be positive number' });
@@ -155,9 +162,11 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
     // Upload image to Cloudinary
     const uploadStream = cloudinary.uploader.upload_stream({ folder: "roomofy_rooms" }, async (error, result) => {
       if (error) {
-        console.error('Cloudinary upload error:', error);
-        return res.status(500).json({ message: 'Failed to upload image' });
+        console.error('❌ Cloudinary upload error:', error);
+        return res.status(500).json({ message: 'Failed to upload image', error });
       }
+
+      console.log('✅ Cloudinary upload result:', result);
 
       const newRoom = new Room({
         title,
@@ -169,16 +178,18 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       });
 
       await newRoom.save();
+      console.log('✅ Room saved to DB:', newRoom._id);
       res.status(201).json({ message: 'Room successfully posted', room: newRoom });
     });
 
     streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 
   } catch (err) {
-    console.error('Add room error:', err);
-    res.status(500).json({ message: 'Failed to add room' });
+    console.error('❌ Add room error:', err);
+    res.status(500).json({ message: 'Failed to add room', error: err.message });
   }
 });
+
 
 // Delete room
 app.delete('/api/rooms/:id', async (req, res) => {
