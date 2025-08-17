@@ -12,110 +12,39 @@
       background: #fff;
       color: #d32f2f;
     }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+    h1 { text-align: center; margin-bottom: 20px; }
     .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 25px;
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 25px;
     }
     .filters input, .filters select, .filters button {
-      padding: 8px 12px;
-      font-size: 1rem;
-      border: 1.8px solid #d32f2f;
-      border-radius: 5px;
-      color: #d32f2f;
+      padding: 8px 12px; font-size: 1rem; border: 1.8px solid #d32f2f; border-radius: 5px; color: #d32f2f;
     }
     .filters button {
-      background: #d32f2f;
-      color: white;
-      font-weight: 700;
-      cursor: pointer;
-      transition: 0.3s;
+      background: #d32f2f; color: white; font-weight: 700; cursor: pointer; transition: 0.3s;
     }
-    .filters button:hover {
-      background: #b71c1c;
-    }
-    .room-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-      gap: 20px;
-    }
+    .filters button:hover { background: #b71c1c; }
+    .room-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 20px; }
     .room-card {
-      border: 2px solid #d32f2f;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff0f0;
+      border: 2px solid #d32f2f; border-radius: 8px; overflow: hidden; background: #fff0f0;
       box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      display: flex; flex-direction: column; justify-content: space-between;
     }
-    .room-card img {
-  width: 100%;       /* card ke width ke andar scale */
-  height: auto;      /* aspect ratio maintain */
-  object-fit: contain; /* crop nahi hoga */
-  display: block;
-}
-
-    .room-info {
-      padding: 15px;
-      flex-grow: 1;
-    }
-    .room-title {
-      font-weight: 700;
-      font-size: 1.2rem;
-      margin-bottom: 8px;
-    }
-    .room-price {
-      color: #b71c1c;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .room-details {
-      font-size: 0.9rem;
-      margin-bottom: 8px;
-    }
-    .room-desc {
-      font-style: italic;
-      font-size: 0.9rem;
-      color: #555;
-      margin-bottom: 15px;
-    }
-    .actions {
-      padding: 0 15px 15px 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
+    .room-card img { width: 100%; height: auto; object-fit: contain; display: block; }
+    .room-info { padding: 15px; flex-grow: 1; }
+    .room-title { font-weight: 700; font-size: 1.2rem; margin-bottom: 8px; }
+    .room-price { color: #b71c1c; font-weight: 700; margin-bottom: 8px; }
+    .room-details { font-size: 0.9rem; margin-bottom: 8px; }
+    .room-desc { font-style: italic; font-size: 0.9rem; color: #555; margin-bottom: 10px; }
+    .room-rating { font-size: 0.95rem; font-weight: bold; color: #333; margin-bottom: 12px; }
+    .actions { padding: 0 15px 15px 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     button.book-btn {
-      background: #d32f2f;
-      border: none;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 5px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      flex-shrink: 0;
+      background: #d32f2f; border: none; color: white; padding: 10px 15px;
+      border-radius: 5px; font-weight: 700; cursor: pointer; transition: background-color 0.3s; flex-shrink: 0;
     }
-    button.book-btn:hover {
-      background: #b71c1c;
-    }
+    button.book-btn:hover { background: #b71c1c; }
     select.rating-select {
-      border: 1.8px solid #d32f2f;
-      border-radius: 5px;
-      padding: 6px 8px;
-      font-size: 1rem;
-      color: #d32f2f;
-      cursor: pointer;
-      flex-shrink: 0;
-      width: 90px;
+      border: 1.8px solid #d32f2f; border-radius: 5px; padding: 6px 8px;
+      font-size: 1rem; color: #d32f2f; cursor: pointer; flex-shrink: 0; width: 90px;
     }
   </style>
 </head>
@@ -158,8 +87,28 @@
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
 
+    // 🟢 Submit Rating to backend
+    async function submitRating(roomId, rating) {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/rating`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating: Number(rating) })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
+          fetchRooms(); // refresh list with updated averages
+        } else {
+          alert("Failed to submit rating");
+        }
+      } catch (err) {
+        alert("Error submitting rating");
+      }
+    }
+
     function displayRooms(rooms) {
-      if(rooms.length === 0){
+      if (rooms.length === 0) {
         roomListDiv.textContent = 'No rooms match your criteria';
         return;
       }
@@ -171,10 +120,11 @@
             <div class="room-price">₹${room.price}</div>
             <div class="room-details">${room.ac} | ${room.location}</div>
             <div class="room-desc">${room.description || ''}</div>
+            <div class="room-rating">⭐ ${room.averageRating || 0} / 5</div>
           </div>
           <div class="actions">
             <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
-            <select class="rating-select" aria-label="Rate this room" onchange="alert('You rated this room ' + this.value + ' star(s)! Thanks!')">
+            <select class="rating-select" aria-label="Rate this room" onchange="submitRating('${room._id}', this.value)">
               <option value="" disabled selected>Rate</option>
               <option value="1">1 ★</option>
               <option value="2">2 ★★</option>

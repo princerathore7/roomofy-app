@@ -61,16 +61,16 @@ app.use('/uploads', express.static(uploadsDir));
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000 // max wait 5 sec
+  serverSelectionTimeoutMS: 5000
 })
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => {
   console.error('❌ MongoDB connection error:', err.message);
-  process.exit(1); // fail fast so Render stops
+  process.exit(1);
 });
 
 // -------------------
-// SCHEMAS & MODELS
+// MODELS
 // -------------------
 const userSchema = new mongoose.Schema({
   mobile: { type: String, unique: true, required: true },
@@ -79,17 +79,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-const roomSchema = new mongoose.Schema({
-  title: String,
-  price: Number,
-  ac: { type: String, enum: ['AC', 'Non-AC'], default: 'Non-AC' },
-  location: String,
-  description: String,
-  photoUrl: String,
-  isHidden: { type: Boolean, default: false } // 👈 ADD THIS LINE
-}, { timestamps: true });
-
-const Room = mongoose.model('Room', roomSchema);
+const Room = require("./models/Room");
 
 // -------------------
 // MULTER CONFIG
@@ -105,7 +95,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // -------------------
-// AUTH ROUTES (UNCHANGED)
+// AUTH ROUTES
 // -------------------
 app.post('/api/auth/signup', async (req, res) => {
   try {
@@ -150,9 +140,9 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-
-
-
+// -------------------
+// ROOM ROUTES
+// -------------------
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -209,8 +199,10 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
     console.error('Update room error:', err);
     res.status(500).json({ message: 'Failed to update room' });
   }
-  //hide and UNHIDE ROOMS
-});app.patch("/api/rooms/:id/hide", async (req, res) => {
+});
+
+// Hide / Unhide rooms
+app.patch("/api/rooms/:id/hide", async (req, res) => {
   try {
     const { isHidden } = req.body;
     const room = await Room.findByIdAndUpdate(req.params.id, { isHidden }, { new: true });
@@ -221,14 +213,36 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
-// Backend: GET /api/rooms
+// Add rating to a room
+app.post("/api/rooms/:id/rating", async (req, res) => {
+  try {
+    const { rating } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+
+    const room = await Room.findById(req.params.id);
+    if (!room) return res.status(404).json({ error: "Room not found" });
+
+    room.ratings.push(rating);
+    await room.save();
+
+    const avg = room.ratings.reduce((a, b) => a + b, 0) / room.ratings.length;
+
+    res.json({ message: "Rating added", averageRating: avg.toFixed(1), room });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add rating" });
+  }
+});
+
+// Get rooms (with filters + average rating)
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice, showHidden } = req.query;
     let filter = {};
 
     if (!showHidden || showHidden === 'false') {
-      filter.isHidden = false; // dashboard me hidden rooms chhupaye
+      filter.isHidden = false;
     }
 
     if (search) {
@@ -245,13 +259,24 @@ app.get('/api/rooms', async (req, res) => {
     }
 
     const rooms = await Room.find(filter).sort({ createdAt: -1 });
-    res.json(rooms);
+
+    const roomsWithAvg = rooms.map(r => {
+      let avg = 0;
+      if (r.ratings && r.ratings.length > 0) {
+        avg = r.ratings.reduce((a, b) => a + b, 0) / r.ratings.length;
+      }
+      return {
+        ...r.toObject(),
+        averageRating: avg.toFixed(1)
+      };
+    });
+
+    res.json(roomsWithAvg);
   } catch (err) {
     console.error('Get rooms error:', err);
     res.status(500).json({ message: 'Failed to fetch rooms' });
   }
 });
-
 
 // -------------------
 // START SERVER

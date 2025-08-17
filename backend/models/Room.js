@@ -5,10 +5,11 @@ const roomSchema = new mongoose.Schema({
   location: { type: String, required: true },
   price: { type: Number, required: true },
   description: { type: String },
-  createdAt: { type: Date, default: Date.now },
-  isHidden: { type: Boolean, default: false }
-
-
+  ac: { type: String, enum: ["AC", "Non-AC"], default: "Non-AC" },
+  photoUrl: { type: String },   // 👈 ADD THIS LINE
+    ratings: [{ type: Number, min: 1, max: 5 }], 
+  isHidden: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model("Room", roomSchema);
