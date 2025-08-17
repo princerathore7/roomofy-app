@@ -127,10 +127,17 @@ app.post('/api/auth/login', async (req, res) => {
 // POST room
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
-    const { title, price, location, description, ac } = req.body;
+    const { title, price, location, description, ac, photoUrl } = req.body;
+
+    // ✅ Validation: title, price, location, ac required
     if (!title || !price || !location || !ac)
       return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-    if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
+
+    // ✅ Either uploaded file OR photo URL must exist
+    if (!req.file && !photoUrl)
+      return res.status(400).json({ message: 'Room photo is required (file or URL)' });
+
+    const photoPath = req.file ? req.file.path : photoUrl;
 
     const newRoom = new Room({
       title,
@@ -138,7 +145,7 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       location,
       description,
       ac,
-      photo: req.file.path,
+      photo: photoPath,
     });
 
     await newRoom.save();

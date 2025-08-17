@@ -42,6 +42,7 @@
     }
     .msg.success { color: green; }
     .msg.error { color: red; }
+    label { font-weight: bold; margin-bottom: 5px; display: block; }
   </style>
 </head>
 <body>
@@ -58,7 +59,13 @@
     </select>
     <input type="text" id="location" name="location" placeholder="Location" required />
     <textarea id="description" name="description" placeholder="Description (optional)"></textarea>
-    <input type="file" id="photo" name="photo" accept="image/*" required />
+
+    <label for="photo">Upload Image:</label>
+    <input type="file" id="photo" name="photo" accept="image/*" />
+
+    <label for="photoUrl">Or paste Image URL:</label>
+    <input type="text" id="photoUrl" name="photoUrl" placeholder="https://i.ibb.co/yourimage.jpg" />
+
     <button type="submit">Add Room</button>
   </form>
 
@@ -75,6 +82,17 @@
       msgDiv.className = 'msg';
 
       const formData = new FormData(form);
+      const photoFile = document.getElementById('photo').files[0];
+      const photoUrl = document.getElementById('photoUrl').value.trim();
+
+      // ✅ Either file or URL required
+      if (!photoFile && !photoUrl) {
+        msgDiv.textContent = 'Please upload a file or paste an image URL';
+        msgDiv.classList.add('error');
+        return;
+      }
+
+      if (photoUrl) formData.append('photoUrl', photoUrl);
 
       try {
         const res = await fetch(`${API_BASE}/rooms`, {
@@ -89,7 +107,6 @@
           msgDiv.classList.add('success');
           form.reset();
         } else {
-          // backend ke message ko readable banaya
           let errMsg = data.message || data.error || JSON.stringify(data);
           msgDiv.textContent = errMsg;
           msgDiv.classList.add('error');
