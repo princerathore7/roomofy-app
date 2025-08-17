@@ -65,8 +65,7 @@
   <div class="msg" id="message"></div>
 
   <script>
-const API_BASE = 'https://roomofy-app-1.onrender.com/api';;
-
+    const API_BASE = 'https://roomofy-app-1.onrender.com/api';
     const form = document.getElementById('postRoomForm');
     const msgDiv = document.getElementById('message');
 
@@ -86,16 +85,20 @@ const API_BASE = 'https://roomofy-app-1.onrender.com/api';;
         const data = await res.json();
 
         if (res.ok) {
-          msgDiv.textContent = 'Room successfully posted!';
+          msgDiv.textContent = data.message || 'Room successfully posted!';
           msgDiv.classList.add('success');
           form.reset();
         } else {
-          msgDiv.textContent = data.error || 'Failed to post room';
+          // backend ke message ko readable banaya
+          let errMsg = data.message || data.error || JSON.stringify(data);
+          msgDiv.textContent = errMsg;
           msgDiv.classList.add('error');
+          console.error('Room post failed:', data);
         }
       } catch (err) {
         msgDiv.textContent = 'Network error. Please try again later.';
         msgDiv.classList.add('error');
+        console.error('Network error:', err);
       }
     });
   </script>
