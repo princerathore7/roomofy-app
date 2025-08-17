@@ -88,22 +88,27 @@
     }
 
     // 🟢 Submit Rating to backend
-    async function submitRating(roomId, rating) {
+    async function submitRating(roomId, rating, selectEl) {
       try {
         const res = await fetch(`${API_BASE}/rooms/${roomId}/rating`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rating: Number(rating) })
         });
-        if (res.ok) {
-          const data = await res.json();
-          alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-          fetchRooms(); // refresh list with updated averages
-        } else {
-          alert("Failed to submit rating");
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || "Failed to submit rating");
+          if (selectEl) selectEl.value = "";
+          return;
         }
+
+        const data = await res.json();
+        alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
+        fetchRooms(); // refresh list with updated averages
       } catch (err) {
         alert("Error submitting rating");
+        if (selectEl) selectEl.value = "";
       }
     }
 
@@ -112,19 +117,21 @@
         roomListDiv.textContent = 'No rooms match your criteria';
         return;
       }
+
       roomListDiv.innerHTML = rooms.map(room => `
         <div class="room-card" data-price="${room.price}">
-          <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+          <img src="${room.photo ? 'https://roomofy-app-1.onrender.com' + room.photo : 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
           <div class="room-info">
             <div class="room-title">${room.title}</div>
             <div class="room-price">₹${room.price}</div>
             <div class="room-details">${room.ac} | ${room.location}</div>
             <div class="room-desc">${room.description || ''}</div>
-            <div class="room-rating">⭐ ${room.averageRating || 0} / 5</div>
+            <div class="room-rating">⭐ ${room.averageRating ?? 0} / 5</div>
           </div>
           <div class="actions">
             <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
-            <select class="rating-select" aria-label="Rate this room" onchange="submitRating('${room._id}', this.value)">
+            <select class="rating-select" aria-label="Rate this room"
+              onchange="submitRating('${room._id}', this.value, this)">
               <option value="" disabled selected>Rate</option>
               <option value="1">1 ★</option>
               <option value="2">2 ★★</option>
@@ -161,8 +168,10 @@
       }
 
       const filtered = allRooms.filter(room => {
-        const matchText = room.title.toLowerCase().includes(searchTerm) || room.location.toLowerCase().includes(searchTerm);
-        const matchPrice = room.price >= minPrice && room.price <= maxPrice;
+        const matchText =
+          (room.title || '').toLowerCase().includes(searchTerm) ||
+          (room.location || '').toLowerCase().includes(searchTerm);
+        const matchPrice = Number(room.price) >= minPrice && Number(room.price) <= maxPrice;
         return matchText && matchPrice;
       });
 

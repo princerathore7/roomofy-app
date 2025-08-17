@@ -10,6 +10,8 @@ const roomSchema = new mongoose.Schema({
     ratings: [{ type: Number, min: 1, max: 5 }], 
   isHidden: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
+  
 });
+
 
 module.exports = mongoose.model("Room", roomSchema);

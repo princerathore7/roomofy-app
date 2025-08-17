@@ -38,7 +38,7 @@ console.log('⚡ BASE_URL:', BASE_URL);
 // -------------------
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // e.g. file:// or curl
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     console.warn(`🚫 CORS blocked origin: ${origin}`);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
@@ -79,6 +79,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// Room model (must include: title, price, ac, location, description, photoUrl, isHidden, ratings[])
 const Room = require("./models/Room");
 
 // -------------------
@@ -159,6 +160,7 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ message: 'Price must be positive number' });
     }
 
+    // store a full URL so frontend can use it directly
     const photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     const newRoom = new Room({ title, price: priceNum, location, description, ac, photoUrl });
     await newRoom.save();
@@ -185,7 +187,13 @@ app.delete('/api/rooms/:id', async (req, res) => {
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    const updateData = { title, price: Number(price), location, description, ac };
+    const updateData = {
+      ...(title !== undefined && { title }),
+      ...(price !== undefined && { price: Number(price) }),
+      ...(location !== undefined && { location }),
+      ...(description !== undefined && { description }),
+      ...(ac !== undefined && { ac })
+    };
 
     if (req.file) {
       updateData.photoUrl = `${BASE_URL}/uploads/${req.file.filename}`;
@@ -205,35 +213,39 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
 app.patch("/api/rooms/:id/hide", async (req, res) => {
   try {
     const { isHidden } = req.body;
-    const room = await Room.findByIdAndUpdate(req.params.id, { isHidden }, { new: true });
+    const room = await Room.findByIdAndUpdate(req.params.id, { isHidden: !!isHidden }, { new: true });
     if (!room) return res.status(404).json({ error: "Room not found" });
     res.json({ message: "Room status updated", room });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Add rating to a room
-app.post("/api/rooms/:id/rating", async (req, res) => {
+app.post('/rooms/:id/rating', async (req, res) => {
   try {
-    const { rating } = req.body;
+    let { rating } = req.body;
+    rating = Number(rating);
+
     if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
     }
 
     const room = await Room.findById(req.params.id);
-    if (!room) return res.status(404).json({ error: "Room not found" });
+    if (!room) return res.status(404).json({ error: 'Room not found' });
 
     room.ratings.push(rating);
     await room.save();
 
-    const avg = room.ratings.reduce((a, b) => a + b, 0) / room.ratings.length;
+    const avgRating = room.ratings.reduce((a, b) => a + b, 0) / room.ratings.length;
 
-    res.json({ message: "Rating added", averageRating: avg.toFixed(1), room });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to add rating" });
+    res.json({ message: 'Rating added successfully', avgRating });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add rating' });
   }
 });
+
 
 // Get rooms (with filters + average rating)
 app.get('/api/rooms', async (req, res) => {
@@ -261,13 +273,11 @@ app.get('/api/rooms', async (req, res) => {
     const rooms = await Room.find(filter).sort({ createdAt: -1 });
 
     const roomsWithAvg = rooms.map(r => {
-      let avg = 0;
-      if (r.ratings && r.ratings.length > 0) {
-        avg = r.ratings.reduce((a, b) => a + b, 0) / r.ratings.length;
-      }
+      const ratings = Array.isArray(r.ratings) ? r.ratings : [];
+      const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
       return {
         ...r.toObject(),
-        averageRating: avg.toFixed(1)
+        averageRating: Number(avg.toFixed(1))
       };
     });
 
