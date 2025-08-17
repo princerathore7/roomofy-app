@@ -5,8 +5,8 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
 
 const app = express();
 
@@ -34,11 +34,21 @@ console.log('⚡ ALLOWED_ORIGINS:', ALLOWED_ORIGINS);
 console.log('⚡ BASE_URL:', BASE_URL);
 
 // -------------------
+// CLOUDINARY CONFIG
+// -------------------
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
+
+// -------------------
 // MIDDLEWARES
 // -------------------
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // e.g. file:// or curl
+    if (!origin) return callback(null, true); 
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     console.warn(`🚫 CORS blocked origin: ${origin}`);
     return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
@@ -47,13 +57,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-// ensure uploads folder exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-app.use('/uploads', express.static(uploadsDir));
 
 // -------------------
 // MONGO DB CONNECT
@@ -79,21 +82,12 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Room model (must include: title, price, ac, location, description, photoUrl, isHidden, ratings[])
 const Room = require("./models/Room");
 
 // -------------------
-// MULTER CONFIG
+// MULTER CONFIG (memory storage for Cloudinary)
 // -------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // -------------------
 // AUTH ROUTES
@@ -145,60 +139,52 @@ app.post('/api/auth/login', async (req, res) => {
 // ROOM ROUTES
 // -------------------
 
-// ✅ Add new room (store only filename, not full URL)
-// ✅ Add new room with guaranteed photo URL for frontend
+// Add new room with Cloudinary upload
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
 
-    // Required fields check
     if (!title || !price || !location || !ac) {
       return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     }
-    if (!req.file) {
-      return res.status(400).json({ message: 'Room photo is required' });
-    }
+    if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const priceNum = Number(price);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      return res.status(400).json({ message: 'Price must be a positive number' });
-    }
+    if (isNaN(priceNum) || priceNum <= 0) return res.status(400).json({ message: 'Price must be positive number' });
 
-    // Save room (only filename in DB)
-    const newRoom = new Room({
-      title,
-      price: priceNum,
-      location,
-      description,
-      ac,
-      photo: req.file.filename
+    // Upload image to Cloudinary
+    const uploadStream = cloudinary.uploader.upload_stream({ folder: "roomofy_rooms" }, async (error, result) => {
+      if (error) {
+        console.error('Cloudinary upload error:', error);
+        return res.status(500).json({ message: 'Failed to upload image' });
+      }
+
+      const newRoom = new Room({
+        title,
+        price: priceNum,
+        location,
+        description,
+        ac,
+        photoUrl: result.secure_url
+      });
+
+      await newRoom.save();
+      res.status(201).json({ message: 'Room successfully posted', room: newRoom });
     });
 
-    await newRoom.save();
+    streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 
-    // Return room with full photo URL for frontend
-    const roomWithUrl = {
-      ...newRoom.toObject(),
-      photoUrl: `${BASE_URL}/uploads/${newRoom.photo}`
-    };
-
-    res.status(201).json({
-      message: 'Room successfully posted',
-      room: roomWithUrl
-    });
   } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room' });
   }
 });
 
-
-// ✅ Delete room
+// Delete room
 app.delete('/api/rooms/:id', async (req, res) => {
   try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Room not found' });
-
     res.json({ message: 'Room deleted successfully' });
   } catch (err) {
     console.error('Delete room error:', err);
@@ -206,13 +192,10 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
-// ✅ Update room
-// ✅ Update room
+// Update room (with optional Cloudinary photo upload)
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-
-    // sirf wahi fields update karo jo aayi hain
     const updateData = {
       ...(title !== undefined && { title }),
       ...(price !== undefined && { price: Number(price) }),
@@ -221,29 +204,32 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
       ...(ac !== undefined && { ac })
     };
 
-    // ✅ yaha sirf filename save karo
     if (req.file) {
-      updateData.photo = req.file.filename;
+      // Upload new photo to Cloudinary
+      const uploadStream = cloudinary.uploader.upload_stream({ folder: "roomofy_rooms" }, async (error, result) => {
+        if (error) {
+          console.error('Cloudinary upload error:', error);
+          return res.status(500).json({ message: 'Failed to upload image' });
+        }
+        updateData.photoUrl = result.secure_url;
+        const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
+        res.json({ message: 'Room updated successfully', room: updatedRoom });
+      });
+      return streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
     }
 
-    const updatedRoom = await Room.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedRoom) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-
+    const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
     res.json({ message: 'Room updated successfully', room: updatedRoom });
+
   } catch (err) {
     console.error('Update room error:', err);
     res.status(500).json({ message: 'Failed to update room' });
   }
 });
 
-// ✅ Hide / Unhide rooms
+// Hide/Unhide rooms
 app.patch("/api/rooms/:id/hide", async (req, res) => {
   try {
     const { isHidden } = req.body;
@@ -256,46 +242,36 @@ app.patch("/api/rooms/:id/hide", async (req, res) => {
   }
 });
 
-// ✅ Add rating
+// Add rating
 app.post('/api/rooms/:id/rating', async (req, res) => {
   try {
     let { rating } = req.body;
     rating = Number(rating);
-
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
-    }
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be between 1 and 5' });
 
     const room = await Room.findById(req.params.id);
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
     room.ratings.push(rating);
     await room.save();
-
     const avgRating = room.ratings.reduce((a, b) => a + b, 0) / room.ratings.length;
-
     res.json({ message: 'Rating added successfully', avgRating });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add rating' });
   }
 });
 
-// ✅ Get rooms (with filters + average rating)
+// Get rooms (with filters + average rating)
 app.get('/api/rooms', async (req, res) => {
   try {
     const { search, minPrice, maxPrice, showHidden } = req.query;
     let filter = {};
+    if (!showHidden || showHidden === 'false') filter.isHidden = false;
 
-    if (!showHidden || showHidden === 'false') {
-      filter.isHidden = false;
-    }
-
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } }
-      ];
-    }
+    if (search) filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { location: { $regex: search, $options: 'i' } }
+    ];
 
     if (minPrice || maxPrice) {
       filter.price = {};
@@ -304,14 +280,10 @@ app.get('/api/rooms', async (req, res) => {
     }
 
     const rooms = await Room.find(filter).sort({ createdAt: -1 });
-
     const roomsWithAvg = rooms.map(r => {
       const ratings = Array.isArray(r.ratings) ? r.ratings : [];
       const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-      return {
-        ...r.toObject(),
-        averageRating: Number(avg.toFixed(1))
-      };
+      return { ...r.toObject(), averageRating: Number(avg.toFixed(1)) };
     });
 
     res.json(roomsWithAvg);
