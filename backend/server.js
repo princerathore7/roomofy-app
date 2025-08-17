@@ -5,14 +5,12 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 // -------------------
 // CLOUDINARY SETUP
 // -------------------
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -20,7 +18,7 @@ cloudinary.config({
 });
 
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
     folder: 'roomofy_rooms',
     allowed_formats: ['jpg', 'jpeg', 'png'],
@@ -37,7 +35,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123';
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -55,7 +52,7 @@ app.use(cors({
 app.use(express.json());
 
 // -------------------
-// MONGO DB
+// MONGODB CONNECT
 // -------------------
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
@@ -121,11 +118,13 @@ app.post('/api/auth/login', async (req, res) => {
 // ROOM ROUTES
 // -------------------
 
-// Add room
+// POST room
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
-    if (!title || !price || !location || !ac) return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
+    if (!title || !price || !location || !ac) {
+      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
+    }
     if (!req.file) return res.status(400).json({ message: 'Room photo is required' });
 
     const newRoom = new Room({
@@ -138,14 +137,14 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
     });
 
     await newRoom.save();
-    res.status(201).json({ message: 'Room successfully posted', room: newRoom });
+    res.status(201).json({ message: 'Room posted successfully', room: newRoom });
   } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room', error: err.message });
   }
 });
 
-// Update room (optional new photo)
+// UPDATE room
 app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
@@ -169,7 +168,7 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
-// Get rooms
+// GET rooms
 app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find().sort({ createdAt: -1 });
