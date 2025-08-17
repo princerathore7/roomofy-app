@@ -146,10 +146,12 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 
 // ✅ Add new room (store only filename, not full URL)
+// ✅ Add new room with guaranteed photo URL for frontend
 app.post('/api/rooms', upload.single('photo'), async (req, res) => {
   try {
     const { title, price, location, description, ac } = req.body;
 
+    // Required fields check
     if (!title || !price || !location || !ac) {
       return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
     }
@@ -159,30 +161,37 @@ app.post('/api/rooms', upload.single('photo'), async (req, res) => {
 
     const priceNum = Number(price);
     if (isNaN(priceNum) || priceNum <= 0) {
-      return res.status(400).json({ message: 'Price must be positive number' });
+      return res.status(400).json({ message: 'Price must be a positive number' });
     }
 
-    // 🟢 save only filename in DB
-    const newRoom = new Room({ 
-      title, 
-      price: priceNum, 
-      location, 
-      description, 
-      ac, 
-      photo: req.file.filename  
+    // Save room (only filename in DB)
+    const newRoom = new Room({
+      title,
+      price: priceNum,
+      location,
+      description,
+      ac,
+      photo: req.file.filename
     });
 
     await newRoom.save();
 
-    res.status(201).json({ 
-      message: 'Room successfully posted', 
-      room: newRoom 
+    // Return room with full photo URL for frontend
+    const roomWithUrl = {
+      ...newRoom.toObject(),
+      photoUrl: `${BASE_URL}/uploads/${newRoom.photo}`
+    };
+
+    res.status(201).json({
+      message: 'Room successfully posted',
+      room: roomWithUrl
     });
   } catch (err) {
     console.error('Add room error:', err);
     res.status(500).json({ message: 'Failed to add room' });
   }
 });
+
 
 // ✅ Delete room
 app.delete('/api/rooms/:id', async (req, res) => {
