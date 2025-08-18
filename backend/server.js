@@ -271,7 +271,7 @@ app.patch('/api/rooms/:id/hide', async (req, res) => {
   }
 });
 // RATE a room
-app.post("/rooms/:id/rate", async (req, res) => {
+app.post("api/rooms/:id/rate", async (req, res) => {
   try {
     const { rating, userId } = req.body;
     const room = await Room.findById(req.params.id);
