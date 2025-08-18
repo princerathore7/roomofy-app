@@ -180,7 +180,7 @@
     }
 async function submitRating(roomId, rating, selectEl) {
   try {
-    const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, {
+    const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rating: Number(rating) })

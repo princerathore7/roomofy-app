@@ -186,12 +186,26 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
 app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find().sort({ createdAt: -1 });
-    res.json(rooms);
+
+    const roomsWithAvg = rooms.map(r => {
+      const ratingsArray = r.ratings || [];
+      const avg = ratingsArray.length
+        ? ratingsArray.reduce((a, b) => a + (b.value || b), 0) / ratingsArray.length
+        : 0;
+
+      return {
+        ...r.toObject(),
+        averageRating: avg.toFixed(1) // 👈 yahi new field hai
+      };
+    });
+
+    res.json(roomsWithAvg);
   } catch (err) {
     console.error('Get rooms error:', err);
     res.status(500).json({ message: 'Failed to fetch rooms', error: err.message });
   }
 });
+
 
 // -------------------
 // GLOBAL ERROR HANDLER
@@ -257,38 +271,25 @@ app.patch('/api/rooms/:id/hide', async (req, res) => {
   }
 });
 // RATE a room
-app.post("/api/rooms/:id/rate", async (req, res) => {
+app.post("/rooms/:id/rate", async (req, res) => {
   try {
-    const { rating } = req.body;
-
-    // Validate rating
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Rating must be between 1 and 5" });
-    }
-
-    // Find the room
+    const { rating, userId } = req.body;
     const room = await Room.findById(req.params.id);
-    if (!room) {
-      return res.status(404).json({ message: "Room not found" });
+    if (!room) return res.status(404).json({ message: "Room not found" });
+
+    // check if already rated by same user
+    const existing = room.ratings.find(r => r.user.toString() === userId);
+    if (existing) {
+      return res.status(400).json({ message: "You have already rated this room" });
     }
 
-    // Push new rating into the array
-    room.ratings.push(rating);
-
-    // Save the room
+    room.ratings.push({ user: userId, value: rating });
     await room.save();
 
-    // Calculate average
-    const avgRating =
-      room.ratings.reduce((sum, r) => sum + r, 0) / room.ratings.length;
+    const avg = room.ratings.reduce((a, r) => a + r.value, 0) / room.ratings.length;
 
-    res.json({
-      message: "Room rated successfully",
-      averageRating: avgRating.toFixed(1),
-      totalRatings: room.ratings.length,
-    });
+    res.json({ message: "Rating added", averageRating: avg.toFixed(1) });
   } catch (err) {
-    console.error("Rate room error:", err);
-    res.status(500).json({ message: "Failed to rate room" });
+    res.status(500).json({ message: "Error rating room" });
   }
 });
