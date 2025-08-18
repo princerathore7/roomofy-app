@@ -183,6 +183,7 @@ app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
 });
 
 // GET rooms
+// GET rooms
 app.get('/api/rooms', async (req, res) => {
   try {
     const rooms = await Room.find().sort({ createdAt: -1 });
@@ -190,12 +191,12 @@ app.get('/api/rooms', async (req, res) => {
     const roomsWithAvg = rooms.map(r => {
       const ratingsArray = r.ratings || [];
       const avg = ratingsArray.length
-        ? ratingsArray.reduce((a, b) => a + (b.value || b), 0) / ratingsArray.length
+        ? ratingsArray.reduce((a, b) => a + b.value, 0) / ratingsArray.length
         : 0;
 
       return {
         ...r.toObject(),
-        averageRating: avg.toFixed(1) // 👈 yahi new field hai
+        averageRating: avg.toFixed(1) // 👈 yahi new field frontend ko milega
       };
     });
 
