@@ -256,3 +256,39 @@ app.patch('/api/rooms/:id/hide', async (req, res) => {
     res.status(500).json({ error: 'Failed to update hide status', details: err.message });
   }
 });
+// RATE a room
+app.post("/api/rooms/:id/rate", async (req, res) => {
+  try {
+    const { rating } = req.body;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    }
+
+    // Find the room
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Push new rating into the array
+    room.ratings.push(rating);
+
+    // Save the room
+    await room.save();
+
+    // Calculate average
+    const avgRating =
+      room.ratings.reduce((sum, r) => sum + r, 0) / room.ratings.length;
+
+    res.json({
+      message: "Room rated successfully",
+      averageRating: avgRating.toFixed(1),
+      totalRatings: room.ratings.length,
+    });
+  } catch (err) {
+    console.error("Rate room error:", err);
+    res.status(500).json({ message: "Failed to rate room" });
+  }
+});

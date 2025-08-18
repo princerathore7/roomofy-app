@@ -178,28 +178,30 @@
       const whatsappNumber = '917024205530';
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
+async function submitRating(roomId, rating, selectEl) {
+  try {
+    const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating: Number(rating) })
+    });
 
-    async function submitRating(roomId, rating, selectEl) {
-      try {
-        const res = await fetch(`${API_BASE}/rooms/${roomId}/rating`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating: Number(rating) })
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          alert(err.error || "Failed to submit rating");
-          if (selectEl) selectEl.value = "";
-          return;
-        }
-        const data = await res.json();
-        alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-        fetchRooms();
-      } catch (err) {
-        alert("Error submitting rating");
-        if (selectEl) selectEl.value = "";
-      }
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to rate room");
+      if (selectEl) selectEl.value = "";
+      return;
     }
+
+    alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
+    fetchRooms(); // refresh rooms after rating
+  } catch (err) {
+    console.error("Rate error:", err);
+    alert("Error submitting rating");
+    if (selectEl) selectEl.value = "";
+  }
+}
 
     function displayRooms(rooms) {
       if (rooms.length === 0) {
