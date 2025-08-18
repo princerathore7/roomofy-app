@@ -220,3 +220,39 @@ app.listen(PORT, () => {
 - Full error logging for debugging
 - CORS setup
 */
+// DELETE room
+app.delete('/api/rooms/:id', async (req, res) => {
+  try {
+    const deletedRoom = await Room.findByIdAndDelete(req.params.id);
+    if (!deletedRoom) return res.status(404).json({ error: 'Room not found' });
+
+    res.json({ message: 'Room deleted successfully' });
+  } catch (err) {
+    console.error('Delete room error:', err);
+    res.status(500).json({ error: 'Failed to delete room', details: err.message });
+  }
+});
+// PATCH hide/unhide room
+app.patch('/api/rooms/:id/hide', async (req, res) => {
+  try {
+    const { isHidden } = req.body;
+
+    // ✅ validate input
+    if (typeof isHidden !== 'boolean') {
+      return res.status(400).json({ error: 'isHidden must be true or false' });
+    }
+
+    const updatedRoom = await Room.findByIdAndUpdate(
+      req.params.id,
+      { isHidden },
+      { new: true }
+    );
+
+    if (!updatedRoom) return res.status(404).json({ error: 'Room not found' });
+
+    res.json({ message: `Room ${isHidden ? 'hidden' : 'unhidden'} successfully`, room: updatedRoom });
+  } catch (err) {
+    console.error('Hide room error:', err);
+    res.status(500).json({ error: 'Failed to update hide status', details: err.message });
+  }
+});

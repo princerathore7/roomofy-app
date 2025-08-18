@@ -86,7 +86,7 @@
   <div class="room-list" id="roomList"></div>
 
   <script>
-    const API_BASE = 'https://roomofy-app-1.onrender.com/api';
+    const API_BASE = 'https://roomofy-app-1.onrender.com'; // FIXED ✅ (remove extra /api if not used)
     const roomListDiv = document.getElementById('roomList');
     const msgDiv = document.getElementById('message');
 
@@ -94,7 +94,6 @@
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/rooms?showHidden=true`);
-
         const rooms = await res.json();
 
         if (!res.ok || rooms.length === 0) {
@@ -110,7 +109,7 @@
               <div class="room-price">₹${room.price}</div>
               <div class="room-details">${room.ac} | ${room.location}</div>
               <button onclick="deleteRoom('${room._id}')">Delete</button>
-              <button class="hide-btn" onclick="toggleHide('${room._id}', ${room.isHidden ? 'false' : 'true'})">
+              <button class="hide-btn" onclick="toggleHide('${room._id}', ${!room.isHidden})">
                 ${room.isHidden ? 'Unhide' : 'Hide'}
               </button>
             </div>
@@ -172,4 +171,3 @@
   </script>
 </body>
 </html>
-
