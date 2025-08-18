@@ -71,53 +71,76 @@
 
   <div class="msg" id="message"></div>
 
-  <script>
-    const API_BASE = 'https://roomofy-app-1.onrender.com/api';
-    const form = document.getElementById('postRoomForm');
-    const msgDiv = document.getElementById('message');
+<script>
+  const API_BASE = 'https://roomofy-app-1.onrender.com/api';
+  const form = document.getElementById('postRoomForm');
+  const msgDiv = document.getElementById('message');
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      msgDiv.textContent = '';
-      msgDiv.className = 'msg';
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msgDiv.textContent = '';
+    msgDiv.className = 'msg';
 
-      const formData = new FormData(form);
-      const photoFile = document.getElementById('photo').files[0];
-      const photoUrl = document.getElementById('photoUrl').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const price = document.getElementById('price').value.trim();
+    const ac = document.getElementById('ac').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const fileInput = document.getElementById('photo');
+    const urlInput = document.getElementById('photoUrl').value.trim();
 
-      // ✅ Either file or URL required
-      if (!photoFile && !photoUrl) {
-        msgDiv.textContent = 'Please upload a file or paste an image URL';
-        msgDiv.classList.add('error');
-        return;
-      }
+    // Require either a file OR a URL
+    const hasFile = fileInput.files && fileInput.files.length > 0;
+    const hasUrl = !!urlInput;
 
-      if (photoUrl) formData.append('photoUrl', photoUrl);
+    if (!hasFile && !hasUrl) {
+      msgDiv.textContent = 'Please add a room image (file or URL).';
+      msgDiv.classList.add('error');
+      return;
+    }
 
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('price', price);
+    fd.append('ac', ac);
+    fd.append('location', location);
+    fd.append('description', description);
+
+    if (hasFile) {
+      fd.append('photo', fileInput.files[0]); // multer will read this
+    } else if (hasUrl) {
+      fd.append('photoUrl', urlInput);        // backend will use this
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/rooms`, { method: 'POST', body: fd });
+
+      // Try to parse JSON; if backend sent HTML (e.g., platform error page), handle gracefully
+      let data;
       try {
-        const res = await fetch(`${API_BASE}/rooms`, {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          msgDiv.textContent = data.message || 'Room successfully posted!';
-          msgDiv.classList.add('success');
-          form.reset();
-        } else {
-          let errMsg = data.message || data.error || JSON.stringify(data);
-          msgDiv.textContent = errMsg;
-          msgDiv.classList.add('error');
-          console.error('Room post failed:', data);
-        }
-      } catch (err) {
-        msgDiv.textContent = 'Network error. Please try again later.';
-        msgDiv.classList.add('error');
-        console.error('Network error:', err);
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        throw new Error(`Non-JSON response: ${text.slice(0, 200)}...`);
       }
-    });
-  </script>
+
+      if (res.ok) {
+        msgDiv.textContent = data.message || 'Room successfully posted!';
+        msgDiv.classList.add('success');
+        form.reset();
+      } else {
+        const errMsg = data.message || data.error || JSON.stringify(data, null, 2);
+        msgDiv.textContent = errMsg;
+        msgDiv.classList.add('error');
+        console.error('Room post failed:', errMsg, data);
+      }
+    } catch (err) {
+      msgDiv.textContent = `Network / parse error: ${err.message}`;
+      msgDiv.classList.add('error');
+      console.error('Network error:', err);
+    }
+  });
+</script>
+
 </body>
 </html>
