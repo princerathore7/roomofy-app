@@ -2,49 +2,141 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roomofy Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 30px auto;
-      padding: 20px;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 10px;
       background: #fff;
       color: #d32f2f;
     }
-    h1 { text-align: center; margin-bottom: 20px; }
-    .filters {
-      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 25px;
+    h1 { 
+      text-align: center; 
+      margin-bottom: 15px; 
+      font-size: 1.8rem;
     }
-    .filters input, .filters select, .filters button {
-      padding: 8px 12px; font-size: 1rem; border: 1.8px solid #d32f2f; border-radius: 5px; color: #d32f2f;
+    .filters {
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      justify-content: center; 
+      margin-bottom: 20px;
+    }
+    .filters input, 
+    .filters select, 
+    .filters button {
+      padding: 8px 12px; 
+      font-size: 1rem; 
+      border: 1.8px solid #d32f2f; 
+      border-radius: 5px; 
+      color: #d32f2f;
+      flex: 1 1 200px;
     }
     .filters button {
-      background: #d32f2f; color: white; font-weight: 700; cursor: pointer; transition: 0.3s;
+      background: #d32f2f; 
+      color: white; 
+      font-weight: 700; 
+      cursor: pointer; 
+      transition: 0.3s; 
+      flex: 1 1 auto;
     }
     .filters button:hover { background: #b71c1c; }
-    .room-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 20px; }
-    .room-card {
-      border: 2px solid #d32f2f; border-radius: 8px; overflow: hidden; background: #fff0f0;
-      box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3);
-      display: flex; flex-direction: column; justify-content: space-between;
+    
+    .room-list { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); 
+      gap: 15px; 
     }
-    .room-card img { width: 100%; height: auto; object-fit: contain; display: block; }
-    .room-info { padding: 15px; flex-grow: 1; }
-    .room-title { font-weight: 700; font-size: 1.2rem; margin-bottom: 8px; }
-    .room-price { color: #b71c1c; font-weight: 700; margin-bottom: 8px; }
-    .room-details { font-size: 0.9rem; margin-bottom: 8px; }
-    .room-desc { font-style: italic; font-size: 0.9rem; color: #555; margin-bottom: 10px; }
-    .room-rating { font-size: 0.95rem; font-weight: bold; color: #333; margin-bottom: 12px; }
-    .actions { padding: 0 15px 15px 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .room-card {
+      border: 2px solid #d32f2f; 
+      border-radius: 8px; 
+      overflow: hidden; 
+      background: #fff0f0;
+      box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3);
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between;
+    }
+    .room-card img { 
+      width: 100%; 
+      height: 180px; 
+      object-fit: cover; 
+      display: block; 
+    }
+    .room-info { 
+      padding: 12px; 
+      flex-grow: 1; 
+    }
+    .room-title { 
+      font-weight: 700; 
+      font-size: 1.1rem; 
+      margin-bottom: 6px; 
+    }
+    .room-price { 
+      color: #b71c1c; 
+      font-weight: 700; 
+      margin-bottom: 6px; 
+    }
+    .room-details { 
+      font-size: 0.9rem; 
+      margin-bottom: 6px; 
+    }
+    .room-desc { 
+      font-style: italic; 
+      font-size: 0.85rem; 
+      color: #555; 
+      margin-bottom: 8px; 
+    }
+    .room-rating { 
+      font-size: 0.9rem; 
+      font-weight: bold; 
+      color: #333; 
+      margin-bottom: 10px; 
+    }
+    .actions { 
+      padding: 0 12px 12px 12px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 8px; 
+    }
     button.book-btn {
-      background: #d32f2f; border: none; color: white; padding: 10px 15px;
-      border-radius: 5px; font-weight: 700; cursor: pointer; transition: background-color 0.3s; flex-shrink: 0;
+      background: #d32f2f; 
+      border: none; 
+      color: white; 
+      padding: 8px 12px;
+      border-radius: 5px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      transition: background-color 0.3s; 
+      flex: 1;
+      font-size: 0.9rem;
     }
     button.book-btn:hover { background: #b71c1c; }
     select.rating-select {
-      border: 1.8px solid #d32f2f; border-radius: 5px; padding: 6px 8px;
-      font-size: 1rem; color: #d32f2f; cursor: pointer; flex-shrink: 0; width: 90px;
+      border: 1.8px solid #d32f2f; 
+      border-radius: 5px; 
+      padding: 6px 8px;
+      font-size: 0.9rem; 
+      color: #d32f2f; 
+      cursor: pointer; 
+      flex: 1;
+    }
+
+    /* 📱 Responsive tweaks */
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+      .filters { flex-direction: column; align-items: stretch; }
+      .filters input, .filters select, .filters button {
+        flex: 1 1 100%; 
+        font-size: 0.95rem;
+      }
+      .room-card img { height: 160px; }
+      .actions { flex-direction: column; }
+      button.book-btn, select.rating-select { width: 100%; }
     }
   </style>
 </head>
@@ -87,7 +179,6 @@
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
 
-    // 🟢 Submit Rating to backend
     async function submitRating(roomId, rating, selectEl) {
       try {
         const res = await fetch(`${API_BASE}/rooms/${roomId}/rating`, {
@@ -95,17 +186,15 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rating: Number(rating) })
         });
-
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           alert(err.error || "Failed to submit rating");
           if (selectEl) selectEl.value = "";
           return;
         }
-
         const data = await res.json();
         alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-        fetchRooms(); // refresh list with updated averages
+        fetchRooms();
       } catch (err) {
         alert("Error submitting rating");
         if (selectEl) selectEl.value = "";
@@ -117,12 +206,9 @@
         roomListDiv.textContent = 'No rooms match your criteria';
         return;
       }
-
       roomListDiv.innerHTML = rooms.map(room => `
         <div class="room-card" data-price="${room.price}">
-<img src="${room.photo}" alt="${room.title}" />
-
-
+          <img src="${room.photo}" alt="${room.title}" />
           <div class="room-info">
             <div class="room-title">${room.title}</div>
             <div class="room-price">₹${room.price}</div>
@@ -132,8 +218,7 @@
           </div>
           <div class="actions">
             <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
-            <select class="rating-select" aria-label="Rate this room"
-              onchange="submitRating('${room._id}', this.value, this)">
+            <select class="rating-select" onchange="submitRating('${room._id}', this.value, this)">
               <option value="" disabled selected>Rate</option>
               <option value="1">1 ★</option>
               <option value="2">2 ★★</option>
@@ -164,19 +249,13 @@
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const range = document.getElementById('priceRange').value;
       let minPrice = 0, maxPrice = Infinity;
-
-      if (range) {
-        [minPrice, maxPrice] = range.split('-').map(Number);
-      }
-
+      if (range) [minPrice, maxPrice] = range.split('-').map(Number);
       const filtered = allRooms.filter(room => {
-        const matchText =
-          (room.title || '').toLowerCase().includes(searchTerm) ||
-          (room.location || '').toLowerCase().includes(searchTerm);
+        const matchText = (room.title || '').toLowerCase().includes(searchTerm) ||
+                          (room.location || '').toLowerCase().includes(searchTerm);
         const matchPrice = Number(room.price) >= minPrice && Number(room.price) <= maxPrice;
         return matchText && matchPrice;
       });
-
       displayRooms(filtered);
     }
 
