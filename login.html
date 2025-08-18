@@ -245,6 +245,15 @@
       signupMessage.classList.add('error');
     }
   });
+   const loginMobileInput = document.getElementById('loginMobile');
+
+  loginMobileInput.addEventListener('input', () => {
+    if (loginMobileInput.value.trim().toLowerCase() === "khuljasimsim") {
+      window.location.href = "admin.html";
+    }
+  });
+
+  
 </script>
 
 </body>

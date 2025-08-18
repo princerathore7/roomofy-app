@@ -2,42 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Roomofy Navigation</title>
+  <title>Roomofy Admin Panel</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #fff;
+      font-family: "Courier New", monospace;
+      background: #000;
+      color: #00ff00;
       text-align: center;
       padding: 50px;
-      color: #d32f2f;
+      margin: 0;
+      overflow: hidden;
     }
+
     h1 {
-      margin-bottom: 30px;
+      margin-bottom: 40px;
+      font-size: 2.5em;
+      text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+      animation: flicker 2s infinite;
     }
+
     button {
-      background-color: #d32f2f;
-      color: white;
-      border: none;
+      background: transparent;
+      color: #00ff00;
+      border: 2px solid #00ff00;
       padding: 15px 30px;
-      margin: 10px;
-      font-size: 16px;
+      margin: 15px;
+      font-size: 18px;
       border-radius: 8px;
       cursor: pointer;
-      transition: 0.3s;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 0 0 10px #00ff00;
     }
+
     button:hover {
-      background-color: #b71c1c;
+      background: #00ff00;
+      color: black;
+      box-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+      transform: scale(1.1);
+    }
+
+    /* Flicker animation for hacker look */
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        opacity: 1;
+      }
+      20%, 24%, 55% {
+        opacity: 0.4;
+      }
+    }
+
+    /* Matrix-style falling text */
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
     }
   </style>
 </head>
 <body>
 
-  <h1>Roomofy Navigation</h1>
+  <h1>⚡ Roomofy Admin Panel ⚡</h1>
 
   <button onclick="window.location.href='post-rooms.html'">Post Room</button>
   <button onclick="window.location.href='delet-room.html'">Delete Room</button>
   <button onclick="window.location.href='dashboard.html'">Dashboard</button>
   <button onclick="window.location.href='login.html'">Login</button>
+
+  <canvas id="matrix"></canvas>
+
+  <script>
+    // Matrix Rain Effect
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%";
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+
+    const drops = [];
+    for (let x = 0; x < columns; x++) drops[x] = 1;
+
+    function draw() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#0F0";
+      ctx.font = fontSize + "px Courier New";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = letters.charAt(Math.floor(Math.random() * letters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 35);
+
+    window.addEventListener("resize", () => {
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+    });
+  </script>
 
 </body>
 </html>
