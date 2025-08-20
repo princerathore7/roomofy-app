@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 400px;
+      max-width: 450px;
       margin: 30px auto;
       background: #fff0f0;
       color: #d32f2f;
@@ -43,6 +43,18 @@
     .msg.success { color: green; }
     .msg.error { color: red; }
     label { font-weight: bold; margin-bottom: 5px; display: block; }
+    .url-group { display: flex; gap: 5px; margin-bottom: 10px; }
+    .url-group input { flex: 1; }
+    .add-btn {
+      background: #fff;
+      color: #d32f2f;
+      border: 1.8px solid #d32f2f;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .add-btn:hover { background: #d32f2f; color: #fff; }
   </style>
 </head>
 <body>
@@ -60,11 +72,16 @@
     <input type="text" id="location" name="location" placeholder="Location" required />
     <textarea id="description" name="description" placeholder="Description (optional)"></textarea>
 
-    <label for="photo">Upload Image:</label>
+    <label for="photo">Upload Image (optional):</label>
     <input type="file" id="photo" name="photo" accept="image/*" />
 
-    <label for="photoUrl">Or paste Image URL:</label>
-    <input type="text" id="photoUrl" name="photoUrl" placeholder="https://i.ibb.co/yourimage.jpg" />
+    <label>Or paste Image URLs:</label>
+    <div id="urlContainer">
+      <div class="url-group">
+        <input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage1.jpg" />
+      </div>
+    </div>
+    <button type="button" class="add-btn" onclick="addUrlField()">+ Add another URL</button>
 
     <button type="submit">Add Room</button>
   </form>
@@ -75,6 +92,14 @@
   const API_BASE = 'https://roomofy-app-1.onrender.com/api';
   const form = document.getElementById('postRoomForm');
   const msgDiv = document.getElementById('message');
+  const urlContainer = document.getElementById('urlContainer');
+
+  function addUrlField() {
+    const div = document.createElement('div');
+    div.classList.add('url-group');
+    div.innerHTML = `<input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage.jpg" />`;
+    urlContainer.appendChild(div);
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -87,14 +112,17 @@
     const location = document.getElementById('location').value.trim();
     const description = document.getElementById('description').value.trim();
     const fileInput = document.getElementById('photo');
-    const urlInput = document.getElementById('photoUrl').value.trim();
 
-    // Require either a file OR a URL
+    // Collect all URL inputs
+    const urlInputs = document.querySelectorAll('input[name="photoUrls[]"]');
+    const urls = Array.from(urlInputs).map(inp => inp.value.trim()).filter(Boolean);
+
+    // Require either a file OR at least one URL
     const hasFile = fileInput.files && fileInput.files.length > 0;
-    const hasUrl = !!urlInput;
+    const hasUrl = urls.length > 0;
 
     if (!hasFile && !hasUrl) {
-      msgDiv.textContent = 'Please add a room image (file or URL).';
+      msgDiv.textContent = 'Please add at least one room image (file or URLs).';
       msgDiv.classList.add('error');
       return;
     }
@@ -108,14 +136,15 @@
 
     if (hasFile) {
       fd.append('photo', fileInput.files[0]); // multer will read this
-    } else if (hasUrl) {
-      fd.append('photoUrl', urlInput);        // backend will use this
+    }
+
+    if (hasUrl) {
+      urls.forEach(url => fd.append('photoUrls[]', url));
     }
 
     try {
       const res = await fetch(`${API_BASE}/rooms`, { method: 'POST', body: fd });
 
-      // Try to parse JSON; if backend sent HTML (e.g., platform error page), handle gracefully
       let data;
       try {
         data = await res.json();
@@ -128,6 +157,7 @@
         msgDiv.textContent = data.message || 'Room successfully posted!';
         msgDiv.classList.add('success');
         form.reset();
+        urlContainer.innerHTML = `<div class="url-group"><input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage1.jpg" /></div>`;
       } else {
         const errMsg = data.message || data.error || JSON.stringify(data, null, 2);
         msgDiv.textContent = errMsg;

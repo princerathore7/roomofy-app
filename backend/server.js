@@ -125,27 +125,43 @@ app.post('/api/auth/login', async (req, res) => {
 // -------------------
 
 // POST room
-app.post('/api/rooms', upload.single('photo'), async (req, res) => {
+// ✅ Multiple photos allowed (array of URLs or uploaded files)
+app.post('/api/rooms', upload.array('photos', 5), async (req, res) => {
   try {
-    const { title, price, location, description, ac, photoUrl } = req.body;
+    const { title, price, location, description, ac, photoUrls } = req.body;
 
-    // ✅ Validation: title, price, location, ac required
+    // ✅ Validation
     if (!title || !price || !location || !ac)
       return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
 
-    // ✅ Either uploaded file OR photo URL must exist
-    if (!req.file && !photoUrl)
-      return res.status(400).json({ message: 'Room photo is required (file or URL)' });
+    // ✅ Collect photos (either uploaded files OR URLs)
+    let photos = [];
 
-    const photoPath = req.file ? req.file.path : photoUrl;
+    // If user uploaded files
+    if (req.files && req.files.length > 0) {
+      photos = req.files.map(f => f.path);
+    }
 
+    // If user passed photo URLs (comma separated or array)
+    if (photoUrls) {
+      if (Array.isArray(photoUrls)) {
+        photos = photos.concat(photoUrls);
+      } else {
+        photos = photos.concat(photoUrls.split(',').map(url => url.trim()));
+      }
+    }
+
+    if (photos.length === 0)
+      return res.status(400).json({ message: 'At least one room photo is required' });
+
+    // ✅ Create new room
     const newRoom = new Room({
       title,
       price: Number(price),
       location,
       description,
       ac,
-      photo: photoPath,
+      photos,   // <-- array instead of single photo
     });
 
     await newRoom.save();

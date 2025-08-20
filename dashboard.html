@@ -34,7 +34,6 @@
       color: #d32f2f;
       flex: 1 1 200px;
     }
-    /* button ab sirf label jaisa hoga */
     .filters button {
       background: transparent;
       border: none;
@@ -45,9 +44,10 @@
     
     .room-list { 
       display: grid; 
-      grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); 
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); 
       gap: 15px; 
     }
+
     .room-card {
       border: 2px solid #d32f2f; 
       border-radius: 8px; 
@@ -59,29 +59,33 @@
       justify-content: space-between;
       position: relative;
     }
-    .room-card img { 
-      width: 100%; 
-      height: 180px; 
-      object-fit: cover; 
-      display: block; 
+    
+    /* --- multiple photo grid --- */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 100px;
+      gap: 3px;
     }
-    /* fullscreen icon */
-    .fullscreen-icon {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(211,47,47,0.8);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      padding: 6px 9px;
-      font-size: 14px;
+    .photo-grid img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       cursor: pointer;
-      transition: background 0.2s;
     }
-    .fullscreen-icon:hover {
-      background: rgba(183,28,28,0.9);
+    .more-overlay {
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0; left: 0;
     }
+
     .room-info { 
       padding: 12px; 
       flex-grow: 1; 
@@ -150,7 +154,7 @@
         flex: 1 1 100%; 
         font-size: 0.95rem;
       }
-      .room-card img { height: 160px; }
+      .photo-grid { grid-auto-rows: 120px; }
       .actions { flex-direction: column; }
       button.book-btn, select.rating-select { width: 100%; }
     }
@@ -245,7 +249,7 @@
         }
 
         alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-        fetchRooms(); // refresh rooms after rating
+        fetchRooms();
       } catch (err) {
         console.error("Rate error:", err);
         alert("Error submitting rating");
@@ -258,10 +262,30 @@
         roomListDiv.textContent = 'No rooms match your criteria';
         return;
       }
-      roomListDiv.innerHTML = rooms.map(room => `
+      roomListDiv.innerHTML = rooms.map(room => {
+        const photos = Array.isArray(room.photos) ? room.photos : [room.photo];
+        let photoHtml = "";
+        
+        if (photos.length <= 4) {
+          photoHtml = photos.map(p => 
+            `<img src="${p}" onclick="openFullscreen('${p}')">`
+          ).join("");
+        } else {
+          const first4 = photos.slice(0,4);
+          photoHtml = first4.map((p,i) => {
+            if (i === 3) {
+              return `<div style="position:relative;">
+                        <img src="${p}" onclick="openFullscreen('${p}')">
+                        <div class="more-overlay" onclick="openFullscreen('${p}')">+${photos.length-4}</div>
+                      </div>`;
+            }
+            return `<img src="${p}" onclick="openFullscreen('${p}')">`;
+          }).join("");
+        }
+
+        return `
         <div class="room-card" data-price="${room.price}">
-          <img src="${room.photo}" alt="${room.title}" />
-          <button class="fullscreen-icon" onclick="openFullscreen('${room.photo}')">⛶</button>
+          <div class="photo-grid">${photoHtml}</div>
           <div class="room-info">
             <div class="room-title">${room.title}</div>
             <div class="room-price">₹${room.price}</div>
@@ -280,8 +304,8 @@
               <option value="5">5 ★★★★★</option>
             </select>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     async function fetchRooms() {
@@ -312,7 +336,6 @@
       displayRooms(filtered);
     }
 
-    // 🔄 auto filter
     document.getElementById('searchInput').addEventListener('input', applyFilter);
     document.getElementById('priceRange').addEventListener('change', applyFilter);
 
