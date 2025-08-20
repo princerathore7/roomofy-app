@@ -77,6 +77,20 @@
     .message.error {
       color: red;
     }
+    .extra-links {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .extra-links a {
+      color: #d32f2f;
+      text-decoration: none;
+      margin: 0 8px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .extra-links a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -111,6 +125,11 @@
       <p class="message" id="signupMessage"></p>
       <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
     </form>
+    
+    <!-- About & How to Use links -->
+    <div class="extra-links">
+      <a href="about.html">About Us</a> | 
+      <a href="how to use.html">How to Use</a>
   </div>
 
 <script>
