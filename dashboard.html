@@ -59,12 +59,30 @@
       display: flex; 
       flex-direction: column; 
       justify-content: space-between;
+      position: relative;
     }
     .room-card img { 
       width: 100%; 
       height: 180px; 
       object-fit: cover; 
       display: block; 
+    }
+    /* fullscreen icon */
+    .fullscreen-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(211,47,47,0.8);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      padding: 6px 9px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .fullscreen-icon:hover {
+      background: rgba(183,28,28,0.9);
     }
     .room-info { 
       padding: 12px; 
@@ -138,6 +156,33 @@
       .actions { flex-direction: column; }
       button.book-btn, select.rating-select { width: 100%; }
     }
+
+    /* fullscreen modal */
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 9999; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      background-color: rgba(0,0,0,0.9); 
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 90%;
+    }
+    .modal .close {
+      position: absolute;
+      top: 20px;
+      right: 35px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -161,6 +206,12 @@
   </div>
 
   <div class="room-list" id="roomList"></div>
+
+  <!-- Fullscreen Modal -->
+  <div id="imgModal" class="modal">
+    <span class="close">&times;</span>
+    <img class="modal-content" id="fullImg">
+  </div>
 
   <script>
     const API_BASE = 'https://roomofy-app-1.onrender.com/api';
@@ -211,6 +262,7 @@ async function submitRating(roomId, rating, selectEl) {
       roomListDiv.innerHTML = rooms.map(room => `
         <div class="room-card" data-price="${room.price}">
           <img src="${room.photo}" alt="${room.title}" />
+          <button class="fullscreen-icon" onclick="openFullscreen('${room.photo}')">⛶</button>
           <div class="room-info">
             <div class="room-title">${room.title}</div>
             <div class="room-price">₹${room.price}</div>
@@ -263,6 +315,26 @@ async function submitRating(roomId, rating, selectEl) {
 
     document.getElementById('filterBtn').addEventListener('click', applyFilter);
     fetchRooms();
+
+    // fullscreen modal logic
+    const modal = document.getElementById("imgModal");
+    const modalImg = document.getElementById("fullImg");
+    const closeBtn = document.querySelector(".modal .close");
+
+    function openFullscreen(src) {
+      modal.style.display = "block";
+      modalImg.src = src;
+    }
+
+    closeBtn.onclick = function() {
+      modal.style.display = "none";
+    }
+
+    modal.onclick = function(e) {
+      if (e.target == modal) {
+        modal.style.display = "none";
+      }
+    }
   </script>
 </body>
 </html>
