@@ -26,8 +26,7 @@
       margin-bottom: 20px;
     }
     .filters input, 
-    .filters select, 
-    .filters button {
+    .filters select {
       padding: 8px 12px; 
       font-size: 1rem; 
       border: 1.8px solid #d32f2f; 
@@ -35,15 +34,14 @@
       color: #d32f2f;
       flex: 1 1 200px;
     }
+    /* button ab sirf label jaisa hoga */
     .filters button {
-      background: #d32f2f; 
-      color: white; 
-      font-weight: 700; 
-      cursor: pointer; 
-      transition: 0.3s; 
-      flex: 1 1 auto;
+      background: transparent;
+      border: none;
+      font-weight: 700;
+      color: #d32f2f;
+      cursor: default;
     }
-    .filters button:hover { background: #b71c1c; }
     
     .room-list { 
       display: grid; 
@@ -148,7 +146,7 @@
     @media (max-width: 600px) {
       h1 { font-size: 1.5rem; }
       .filters { flex-direction: column; align-items: stretch; }
-      .filters input, .filters select, .filters button {
+      .filters input, .filters select {
         flex: 1 1 100%; 
         font-size: 0.95rem;
       }
@@ -229,30 +227,31 @@
       const whatsappNumber = '917024205530';
       return `https://wa.me/${whatsappNumber}?text=${message}`;
     }
-async function submitRating(roomId, rating, selectEl) {
-  try {
-    const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, { 
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating: Number(rating) })
-    });
 
-    const data = await res.json();
+    async function submitRating(roomId, rating, selectEl) {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, { 
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating: Number(rating) })
+        });
 
-    if (!res.ok) {
-      alert(data.message || "Failed to rate room");
-      if (selectEl) selectEl.value = "";
-      return;
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to rate room");
+          if (selectEl) selectEl.value = "";
+          return;
+        }
+
+        alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
+        fetchRooms(); // refresh rooms after rating
+      } catch (err) {
+        console.error("Rate error:", err);
+        alert("Error submitting rating");
+        if (selectEl) selectEl.value = "";
+      }
     }
-
-    alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-    fetchRooms(); // refresh rooms after rating
-  } catch (err) {
-    console.error("Rate error:", err);
-    alert("Error submitting rating");
-    if (selectEl) selectEl.value = "";
-  }
-}
 
     function displayRooms(rooms) {
       if (rooms.length === 0) {
@@ -313,7 +312,10 @@ async function submitRating(roomId, rating, selectEl) {
       displayRooms(filtered);
     }
 
-    document.getElementById('filterBtn').addEventListener('click', applyFilter);
+    // 🔄 auto filter
+    document.getElementById('searchInput').addEventListener('input', applyFilter);
+    document.getElementById('priceRange').addEventListener('change', applyFilter);
+
     fetchRooms();
 
     // fullscreen modal logic
