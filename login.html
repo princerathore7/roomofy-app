@@ -93,13 +93,21 @@
     }
     #processing {
       display: none;
-      margin-top: 20px;
-      font-size: 18px;
+      margin: 15px 0;
+      font-size: 16px;
       color: #333;
+      text-align: center;
+      font-weight: bold;
     }
     #timer {
       font-weight: bold;
       color: #d32f2f;
+    }
+    #contactMsg {
+      display: none;
+      margin-top: 10px;
+      color: red;
+      text-align: center;
     }
   </style>
 </head>
@@ -114,14 +122,14 @@
         Welcome to Roomofy! <br> Find the perfect room for your family & friends.
       </p>
     </div>
-        <!-- Timer & Processing -->
+
+    <!-- Timer & Processing -->
     <div id="processing">
       Processing your request... <span id="timer">60</span> seconds left
     </div>
-    <div id="contactMsg" style="display:none; margin-top:20px; color:red;">
+    <div id="contactMsg">
       Login not completed. Please contact <b>roomofyonline@gmail.com</b>
     </div>
-
 
     <!-- Login Form -->
     <form id="loginForm">
@@ -143,14 +151,6 @@
       <p class="message" id="signupMessage"></p>
       <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
     </form>
-
-    <!-- Timer & Processing -->
-    <div id="processing">
-      Processing your request... <span id="timer">60</span> seconds left
-    </div>
-    <div id="contactMsg" style="display:none; margin-top:20px; color:red;">
-      Login not completed. Please contact <b>roomofyonline@gmail.com</b>
-    </div>
 
     <!-- Extra Links -->
     <div class="extra-links">
@@ -279,11 +279,7 @@
       signupMessage.textContent = "Signup successful! Please login.";
       signupMessage.classList.add('success');
 
-      setTimeout(()=>{
-        signupForm.style.display = 'none';
-        loginForm.style.display = 'flex';
-        clearMessages();
-      },2000);
+      setTimeout(()=>{ signupForm.style.display='none'; loginForm.style.display='flex'; clearMessages(); },2000);
     }catch(err){
       signupMessage.textContent = "Network error, please check console.";
       signupMessage.classList.add('error');
