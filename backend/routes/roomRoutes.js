@@ -3,11 +3,13 @@ const router = express.Router();
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("cloudinary").v2;
-const { verifyToken } = require("../middleware/authMiddleware");
 const Room = require("../models/Room");
 
-// cloudinary config
+// -------------------
+// CLOUDINARY CONFIG
+// -------------------
 cloudinary.config({ secure: true });
+
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -18,8 +20,10 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage });
 
-// ✅ POST room (with multiple photos)
-router.post("/", verifyToken, upload.array("photos", 5), async (req, res) => {
+// -------------------
+// ✅ PUBLIC POST room (no token required)
+// -------------------
+router.post("/", upload.array("photos", 5), async (req, res) => {
   try {
     const { title, price, location, description, ac, photoUrls } = req.body;
 
@@ -29,10 +33,12 @@ router.post("/", verifyToken, upload.array("photos", 5), async (req, res) => {
 
     let photos = [];
 
+    // If photos uploaded via multer
     if (req.files && req.files.length > 0) {
       photos = req.files.map(f => f.path);
     }
 
+    // If photo URLs provided
     if (photoUrls) {
       if (Array.isArray(photoUrls)) {
         photos = photos.concat(photoUrls);
@@ -62,6 +68,18 @@ router.post("/", verifyToken, upload.array("photos", 5), async (req, res) => {
       message: "Failed to add room",
       error: err.message,
     });
+  }
+});
+
+// -------------------
+// GET all rooms (public)
+// -------------------
+router.get("/", async (req, res) => {
+  try {
+    const rooms = await Room.find().sort({ createdAt: -1 });
+    res.json(rooms);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch rooms", error: err.message });
   }
 });
 
