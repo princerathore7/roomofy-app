@@ -1,36 +1,14 @@
 // -------------------
-// BACKEND SERVER - ROOMOFY
-// Fully ready-to-use with Cloudinary + MongoDB + JWT + Multer
+// BACKEND SERVER - ROOMOFY (Cleaned)
+// Fully ready-to-use with Cloudinary + MongoDB + JWT
 // -------------------
 
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('cloudinary').v2;
-
-// -------------------
-// CLOUDINARY SETUP
-// Make sure you have this in your .env:
-// CLOUDINARY_URL=cloudinary://<API_KEY>:<API_SECRET>@<CLOUD_NAME>
-// Example: CLOUDINARY_URL=cloudinary://948692556859643:zYEMVv-LFiJidIGpkS5ZlOEzeEo@roomofy
-// -------------------
-cloudinary.config({ secure: true }); // HTTPS uploads
-
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'roomofy_rooms',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-    transformation: [{ width: 800, height: 600, crop: 'limit' }],
-  },
-});
-
-const upload = multer({ storage });
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // -------------------
 // EXPRESS SETUP
@@ -38,31 +16,39 @@ const upload = multer({ storage });
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
-const JWT_SECRET = process.env.JWT_SECRET || 'hellosecret123';
+const JWT_SECRET = process.env.JWT_SECRET || "hellosecret123";
 
+// -------------------
 // CORS setup
+// -------------------
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5500'];
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:5500"];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Postman or curl
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS policy: Origin ${origin} not allowed`), false);
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // Postman / curl
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(
+        new Error(`CORS policy: Origin ${origin} not allowed`),
+        false
+      );
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
 // -------------------
 // MONGODB CONNECTION
 // -------------------
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => {
-    console.error('❌ MongoDB connection error:', err.message);
+mongoose
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err.message);
     process.exit(1);
   });
 
@@ -74,163 +60,80 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
 });
-const User = mongoose.model('User', userSchema);
-
-const Room = require('./models/Room'); // Make sure this exists
+const User = mongoose.model("User", userSchema);
 
 // -------------------
 // AUTH ROUTES
 // -------------------
-app.post('/api/auth/signup', async (req, res) => {
+app.post("/api/auth/signup", async (req, res) => {
   try {
     const { mobile, password } = req.body;
-    if (!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+    if (!mobile || !password)
+      return res
+        .status(400)
+        .json({ message: "Mobile and password required" });
 
     const existingUser = await User.findOne({ mobile });
-    if (existingUser) return res.status(400).json({ message: 'Mobile already registered' });
+    if (existingUser)
+      return res.status(400).json({ message: "Mobile already registered" });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const newUser = new User({ mobile, passwordHash });
     await newUser.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error('Signup error:', err);
-    res.status(500).json({ message: 'Server error during signup', error: err.message });
+    console.error("Signup error:", err);
+    res
+      .status(500)
+      .json({ message: "Server error during signup", error: err.message });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { mobile, password } = req.body;
-    if (!mobile || !password) return res.status(400).json({ message: 'Mobile and password required' });
+    if (!mobile || !password)
+      return res
+        .status(400)
+        .json({ message: "Mobile and password required" });
 
     const user = await User.findOne({ mobile });
-    if (!user) return res.status(400).json({ message: 'Invalid mobile or password' });
+    if (!user)
+      return res.status(400).json({ message: "Invalid mobile or password" });
 
     const validPass = await bcrypt.compare(password, user.passwordHash);
-    if (!validPass) return res.status(400).json({ message: 'Invalid mobile or password' });
+    if (!validPass)
+      return res.status(400).json({ message: "Invalid mobile or password" });
 
-    const token = jwt.sign({ userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign(
+      { userId: user._id, mobile: user.mobile, isAdmin: user.isAdmin },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error during login', error: err.message });
+    console.error("Login error:", err);
+    res
+      .status(500)
+      .json({ message: "Server error during login", error: err.message });
   }
 });
 
 // -------------------
-// ROOM ROUTES
+// ROOM ROUTES (moved to separate file)
 // -------------------
-
-// POST room
-// ✅ Multiple photos allowed (array of URLs or uploaded files)
-app.post('/api/rooms', upload.array('photos', 5), async (req, res) => {
-  try {
-    const { title, price, location, description, ac, photoUrls } = req.body;
-
-    // ✅ Validation
-    if (!title || !price || !location || !ac)
-      return res.status(400).json({ message: 'Title, price, location and AC/Non-AC required' });
-
-    // ✅ Collect photos (either uploaded files OR URLs)
-    let photos = [];
-
-    // If user uploaded files
-    if (req.files && req.files.length > 0) {
-      photos = req.files.map(f => f.path);
-    }
-
-    // If user passed photo URLs (comma separated or array)
-    if (photoUrls) {
-      if (Array.isArray(photoUrls)) {
-        photos = photos.concat(photoUrls);
-      } else {
-        photos = photos.concat(photoUrls.split(',').map(url => url.trim()));
-      }
-    }
-
-    if (photos.length === 0)
-      return res.status(400).json({ message: 'At least one room photo is required' });
-
-    // ✅ Create new room
-    const newRoom = new Room({
-      title,
-      price: Number(price),
-      location,
-      description,
-      ac,
-      photos,   // <-- array instead of single photo
-    });
-
-    await newRoom.save();
-    res.status(201).json({ message: 'Room posted successfully', room: newRoom });
-  } catch (err) {
-    console.error('Add room error:', err);
-    res.status(500).json({
-      message: 'Failed to add room',
-      error: err?.response?.body || err?.message || err,
-    });
-  }
-});
-
-// UPDATE room
-app.put('/api/rooms/:id', upload.single('photo'), async (req, res) => {
-  try {
-    const { title, price, location, description, ac } = req.body;
-    const updateData = {
-      ...(title && { title }),
-      ...(price && { price: Number(price) }),
-      ...(location && { location }),
-      ...(description && { description }),
-      ...(ac && { ac }),
-    };
-    if (req.file) updateData.photo = req.file.path;
-
-    const updatedRoom = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (!updatedRoom) return res.status(404).json({ message: 'Room not found' });
-
-    res.json({ message: 'Room updated successfully', room: updatedRoom });
-  } catch (err) {
-    console.error('Update room error:', err);
-    res.status(500).json({ message: 'Failed to update room', error: err.message });
-  }
-});
-
-// GET rooms
-// GET rooms
-app.get('/api/rooms', async (req, res) => {
-  try {
-    const rooms = await Room.find().sort({ createdAt: -1 });
-
-    const roomsWithAvg = rooms.map(r => {
-      const ratingsArray = r.ratings || [];
-      const avg = ratingsArray.length
-        ? ratingsArray.reduce((a, b) => a + b.value, 0) / ratingsArray.length
-        : 0;
-
-      return {
-        ...r.toObject(),
-        averageRating: avg.toFixed(1) // 👈 yahi new field frontend ko milega
-      };
-    });
-
-    res.json(roomsWithAvg);
-  } catch (err) {
-    console.error('Get rooms error:', err);
-    res.status(500).json({ message: 'Failed to fetch rooms', error: err.message });
-  }
-});
-
+const roomRoutes = require("./routes/roomRoutes");
+app.use("/api/rooms", roomRoutes);
 
 // -------------------
 // GLOBAL ERROR HANDLER
 // -------------------
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  console.error("Unhandled error:", err);
   res.status(500).json({
-    message: 'Internal Server Error',
+    message: "Internal Server Error",
     error: err?.response?.body || err?.message || err,
   });
 });
@@ -240,73 +143,4 @@ app.use((err, req, res, next) => {
 // -------------------
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-});
-
-/* 
-✅ Ready-to-use backend with:
-- Full Cloudinary + Multer file upload
-- MongoDB connection
-- User signup/login with bcrypt + JWT
-- Room CRUD (POST, PUT, GET)
-- Full error logging for debugging
-- CORS setup
-*/
-// DELETE room
-app.delete('/api/rooms/:id', async (req, res) => {
-  try {
-    const deletedRoom = await Room.findByIdAndDelete(req.params.id);
-    if (!deletedRoom) return res.status(404).json({ error: 'Room not found' });
-
-    res.json({ message: 'Room deleted successfully' });
-  } catch (err) {
-    console.error('Delete room error:', err);
-    res.status(500).json({ error: 'Failed to delete room', details: err.message });
-  }
-});
-// PATCH hide/unhide room
-app.patch('/api/rooms/:id/hide', async (req, res) => {
-  try {
-    const { isHidden } = req.body;
-
-    // ✅ validate input
-    if (typeof isHidden !== 'boolean') {
-      return res.status(400).json({ error: 'isHidden must be true or false' });
-    }
-
-    const updatedRoom = await Room.findByIdAndUpdate(
-      req.params.id,
-      { isHidden },
-      { new: true }
-    );
-
-    if (!updatedRoom) return res.status(404).json({ error: 'Room not found' });
-
-    res.json({ message: `Room ${isHidden ? 'hidden' : 'unhidden'} successfully`, room: updatedRoom });
-  } catch (err) {
-    console.error('Hide room error:', err);
-    res.status(500).json({ error: 'Failed to update hide status', details: err.message });
-  }
-});
-// RATE a room
-app.post("api/rooms/:id/rate", async (req, res) => {
-  try {
-    const { rating, userId } = req.body;
-    const room = await Room.findById(req.params.id);
-    if (!room) return res.status(404).json({ message: "Room not found" });
-
-    // check if already rated by same user
-    const existing = room.ratings.find(r => r.user.toString() === userId);
-    if (existing) {
-      return res.status(400).json({ message: "You have already rated this room" });
-    }
-
-    room.ratings.push({ user: userId, value: rating });
-    await room.save();
-
-    const avg = room.ratings.reduce((a, r) => a + r.value, 0) / room.ratings.length;
-
-    res.json({ message: "Rating added", averageRating: avg.toFixed(1) });
-  } catch (err) {
-    res.status(500).json({ message: "Error rating room" });
-  }
 });
