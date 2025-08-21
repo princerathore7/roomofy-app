@@ -83,7 +83,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+
 // -------------------
 // DELETE a room (public for now)
 // -------------------
@@ -125,3 +125,4 @@ router.patch("/:id/hide", async (req, res) => {
     res.status(500).json({ error: "Failed to update room visibility", details: err.message });
   }
 });
+module.exports = router;
