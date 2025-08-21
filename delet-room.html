@@ -104,7 +104,8 @@ const API_BASE = "https://roomofy-app-1.onrender.com/api";
 
         roomListDiv.innerHTML = rooms.map(room => `
           <div class="room-card" id="room-${room._id}">
-            <img src="${room.photoUrl || 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+            <img src="${room.photos && room.photos.length > 0 ? room.photos[0] : 'https://via.placeholder.com/280x180?text=No+Image'}" alt="${room.title}" />
+
             <div class="room-info">
               <div class="room-title">${room.title}</div>
               <div class="room-price">₹${room.price}</div>

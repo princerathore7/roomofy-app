@@ -84,3 +84,44 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+// -------------------
+// DELETE a room (public for now)
+// -------------------
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const room = await Room.findByIdAndDelete(id);
+
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    res.json({ message: "Room deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete room", details: err.message });
+  }
+});
+
+// -------------------
+// HIDE / UNHIDE a room
+// -------------------
+router.patch("/:id/hide", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isHidden } = req.body;
+
+    const room = await Room.findByIdAndUpdate(
+      id,
+      { isHidden },
+      { new: true }
+    );
+
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    res.json({ message: `Room ${isHidden ? "hidden" : "unhidden"} successfully`, room });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update room visibility", details: err.message });
+  }
+});
