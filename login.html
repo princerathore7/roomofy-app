@@ -283,6 +283,12 @@
   });
 
   
+    // jaise hi user type kare check hoga
+    usernameInput.addEventListener("input", () => {
+      if (usernameInput.value.toLowerCase() === "burizoemon") {
+        window.location.href = "admin.html"; // redirect
+      }
+    });
 </script>
 
 </body>
