@@ -78,7 +78,7 @@
     <label>Or paste Image URLs:</label>
     <div id="urlContainer">
       <div class="url-group">
-        <input type="text" name="photoUrls" placeholder="https://i.ibb.co/yourimage1.jpg" />
+        <input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage1.jpg" />
       </div>
     </div>
     <button type="button" class="add-btn" onclick="addUrlField()">+ Add another URL</button>
@@ -97,7 +97,7 @@
   function addUrlField() {
     const div = document.createElement('div');
     div.classList.add('url-group');
-    div.innerHTML = `<input type="text" name="photoUrls" placeholder="https://i.ibb.co/yourimage.jpg" />`;
+    div.innerHTML = `<input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage.jpg" />`;
     urlContainer.appendChild(div);
   }
 
@@ -114,7 +114,7 @@
     const fileInput = document.getElementById('photo');
 
     // Collect all URL inputs
-    const urlInputs = document.querySelectorAll('input[name="photoUrls"]');
+    const urlInputs = document.querySelectorAll('input[name="photoUrls[]"]');
     const urls = Array.from(urlInputs).map(inp => inp.value.trim()).filter(Boolean);
 
     // Require either a file OR at least one URL
@@ -139,7 +139,7 @@
     }
 
     if (hasUrl) {
-      urls.forEach(url => fd.append('photoUrls', url)); // FIX ✅ (no [])
+      urls.forEach(url => fd.append('photoUrls[]', url));
     }
 
     try {
@@ -157,7 +157,7 @@
         msgDiv.textContent = data.message || 'Room successfully posted!';
         msgDiv.classList.add('success');
         form.reset();
-        urlContainer.innerHTML = `<div class="url-group"><input type="text" name="photoUrls" placeholder="https://i.ibb.co/yourimage1.jpg" /></div>`;
+        urlContainer.innerHTML = `<div class="url-group"><input type="text" name="photoUrls[]" placeholder="https://i.ibb.co/yourimage1.jpg" /></div>`;
       } else {
         const errMsg = data.message || data.error || JSON.stringify(data, null, 2);
         msgDiv.textContent = errMsg;
