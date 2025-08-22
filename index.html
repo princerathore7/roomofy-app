@@ -8,38 +8,72 @@
     body {
       margin: 0;
       padding: 0;
-      background: red;
+      background: linear-gradient(135deg, #ff1a1a, #cc0000);
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      font-family: Arial, sans-serif;
+      font-family: "Poppins", sans-serif;
       flex-direction: column;
       text-align: center;
+      overflow: hidden;
     }
 
+    /* Logo animation */
     .logo-img {
-      width: 200px;
+      width: 180px;
       height: auto;
-      border-radius: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border-radius: 20px;
+      margin-bottom: 25px;
+      opacity: 0;
+      transform: scale(0.7);
+      animation: fadeZoom 1.2s ease forwards;
     }
 
+    @keyframes fadeZoom {
+      0% { opacity: 0; transform: scale(0.7) translateY(30px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Roomofy text typing effect */
     h1 {
       font-size: 3em;
       margin: 0;
+      letter-spacing: 2px;
+      white-space: nowrap;
+      border-right: 3px solid rgba(255,255,255,0.75);
+      width: 0;
+      overflow: hidden;
+      animation: typing 2s steps(20, end) forwards,
+                 blink 0.7s step-end infinite;
     }
 
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+
+    /* Loader */
     .loader {
-      margin-top: 20px;
-      width: 40px;
-      height: 40px;
-      border: 4px solid white;
-      border-top: 4px solid transparent;
+      margin-top: 40px;
+      width: 45px;
+      height: 45px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid white;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      opacity: 0;
+      transform: translateY(50px);
+      animation: slideUp 1s ease forwards 2.2s, spin 1s linear infinite 2.2s;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     @keyframes spin {
@@ -47,16 +81,18 @@
       100% { transform: rotate(360deg); }
     }
   </style>
+
   <script>
+    // Redirect after 3.5s
     setTimeout(() => {
       window.location.href = "login.html";
-    }, 3000);
+    }, 3500);
   </script>
 </head>
 <body>
   <!-- 👇 Model Image -->
   <img src="https://i.ibb.co/4kfN7gz/Gemini-Generated-Image-rbx2f0rbx2f0rbx2.png" 
-       alt="Roomofy Model" class="logo-img">
+       alt="Roomofy Logo" class="logo-img">
 
   <h1>Roomofy</h1>
   <div class="loader"></div>
