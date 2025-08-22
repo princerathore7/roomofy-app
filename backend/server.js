@@ -1,8 +1,6 @@
 // -------------------
-// BACKEND SERVER - ROOMOFY (Cleaned)
-// Fully ready-to-use with Cloudinary + MongoDB + JWT
+// BACKEND SERVER - ROOMOFY (Hardened CORS + QoL)
 // -------------------
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -18,28 +16,76 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET || "hellosecret123";
 
-// -------------------
-// CORS setup
-// -------------------
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5500"];
+// If running behind a proxy (Render/Railway/NGINX), trust it for correct protocol detection
+app.set("trust proxy", 1);
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Postman / curl
-      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-      return callback(
-        new Error(`CORS policy: Origin ${origin} not allowed`),
-        false
-      );
-    },
-    credentials: true,
-  })
-);
+// -------------------
+// CORS setup (multi-origin + preflight + www support)
+// -------------------
+/**
+ * ALLOWED_ORIGINS in .env:
+ * ALLOWED_ORIGINS=https://roomofy.online,https://www.roomofy.online,https://netify.roomofymapp.com
+ */
+const DEFAULT_ALLOWED = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "https://roomofy.online",
+  "https://www.roomofy.online",
+];
 
-app.use(express.json());
+const envAllowed =
+  process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+    : [];
+
+const ALLOWED_ORIGINS = Array.from(new Set([...DEFAULT_ALLOWED, ...envAllowed]));
+
+// A small helper to handle null origin (Postman/curl) and strict checks
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Postman / curl / same-origin
+    // Normalize trailing slash
+    const clean = origin.replace(/\/+$/, "");
+    if (ALLOWED_ORIGINS.includes(clean)) return callback(null, true);
+    // also allow www.<domain> if bare domain present
+    const wwwVariant = clean.replace("://", "://www.");
+    const bareVariant = clean.replace("://www.", "://");
+    if (ALLOWED_ORIGINS.includes(wwwVariant) || ALLOWED_ORIGINS.includes(bareVariant)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
+app.use((req, res, next) => {
+  // Useful to see incoming Origin during debugging
+  if (process.env.NODE_ENV !== "production") {
+    // console.log("Incoming Origin:", req.headers.origin);
+  }
+  next();
+});
+
+app.use(cors(corsOptions));
+// Handle preflight for all routes
+app.options("*", cors(corsOptions));
+
+// Body parser
+app.use(express.json({ limit: "1mb" }));
+
+// -------------------
+// HEALTH CHECK (for quick diagnostics)
+// -------------------
+app.get("/health", (req, res) => {
+  return res.status(200).json({
+    ok: true,
+    uptime: process.uptime(),
+    originsAllowed: ALLOWED_ORIGINS,
+  });
+});
 
 // -------------------
 // MONGODB CONNECTION
@@ -69,9 +115,7 @@ app.post("/api/auth/signup", async (req, res) => {
   try {
     const { mobile, password } = req.body;
     if (!mobile || !password)
-      return res
-        .status(400)
-        .json({ message: "Mobile and password required" });
+      return res.status(400).json({ message: "Mobile and password required" });
 
     const existingUser = await User.findOne({ mobile });
     if (existingUser)
@@ -94,9 +138,7 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { mobile, password } = req.body;
     if (!mobile || !password)
-      return res
-        .status(400)
-        .json({ message: "Mobile and password required" });
+      return res.status(400).json({ message: "Mobile and password required" });
 
     const user = await User.findOne({ mobile });
     if (!user)
@@ -122,15 +164,20 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 // -------------------
-// ROOM ROUTES (moved to separate file)
+// ROOM ROUTES (separate file)
 // -------------------
 const roomRoutes = require("./routes/roomRoutes");
 app.use("/api/rooms", roomRoutes);
 
 // -------------------
-// GLOBAL ERROR HANDLER
+// GLOBAL ERROR HANDLER (CORS aware)
 // -------------------
 app.use((err, req, res, next) => {
+  // CORS errors should return 403 to make it obvious in frontend
+  if (err && String(err.message || "").startsWith("CORS policy")) {
+    console.error("CORS blocked:", err.message);
+    return res.status(403).json({ message: err.message });
+  }
   console.error("Unhandled error:", err);
   res.status(500).json({
     message: "Internal Server Error",
@@ -143,4 +190,5 @@ app.use((err, req, res, next) => {
 // -------------------
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  console.log(`✅ Allowed Origins: ${ALLOWED_ORIGINS.join(", ")}`);
 });

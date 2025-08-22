@@ -185,10 +185,78 @@
       font-weight: bold;
       cursor: pointer;
     }
+    /* price range dropdown professional styling */
+#priceRange {
+  appearance: none; /* native arrow hide */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  border: 2px solid #d32f2f;
+  border-radius: 6px;
+  padding: 10px 40px 10px 14px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #d32f2f;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23d32f2f' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+}
+
+#priceRange:hover {
+  border-color: #b71c1c;
+  box-shadow: 0 0 6px rgba(211,47,47,0.4);
+}
+
+#priceRange:focus {
+  outline: none;
+  border-color: #b71c1c;
+  box-shadow: 0 0 8px rgba(183,28,28,0.5);
+}
+#bookingType {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  border: 2px solid #d32f2f;
+  border-radius: 6px;
+  padding: 10px 40px 10px 14px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #d32f2f;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23d32f2f' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+}
+
+#bookingType:hover {
+  border-color: #b71c1c;
+  box-shadow: 0 0 6px rgba(211,47,47,0.4);
+}
+
+#bookingType:focus {
+  outline: none;
+  border-color: #b71c1c;
+  box-shadow: 0 0 8px rgba(183,28,28,0.5);
+}
+
+
   </style>
 </head>
 <body>
   <h1>Roomofy</h1>
+<!-- Booking Type Filter -->
+<select id="bookingType">
+  <option value="">All Booking Types</option>
+  <option value="monthly">Monthly</option>
+  <option value="one day">One Day</option>
+  <option value="both">Both</option>
+</select>
 
   <div class="filters">
     <input type="text" id="searchInput" placeholder="Search by title or location" />
@@ -268,12 +336,9 @@
       const photos = Array.isArray(room.photos) ? room.photos : [room.photo];
       let photoHtml = "";
 
-      // ✅ Single photo → full width
       if (photos.length === 1) {
         photoHtml = `<img src="${photos[0]}" style="width:100%; height:220px; object-fit:cover; cursor:pointer;" onclick="openFullscreen('${photos[0]}')">`;
-      } 
-      // ✅ Multiple photos → grid style
-      else if (photos.length <= 4) {
+      } else if (photos.length <= 4) {
         photoHtml = `<div class="photo-grid">` +
           photos.map(p => `<img src="${p}" onclick="openFullscreen('${p}')">`).join("") +
         `</div>`;
@@ -334,19 +399,33 @@
   function applyFilter() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const range = document.getElementById('priceRange').value;
+    const bookingType = document.getElementById('bookingType').value; // new filter
+
     let minPrice = 0, maxPrice = Infinity;
     if (range) [minPrice, maxPrice] = range.split('-').map(Number);
+
     const filtered = allRooms.filter(room => {
+      const desc = (room.description || "").toLowerCase();
       const matchText = (room.title || '').toLowerCase().includes(searchTerm) ||
                         (room.location || '').toLowerCase().includes(searchTerm);
       const matchPrice = Number(room.price) >= minPrice && Number(room.price) <= maxPrice;
-      return matchText && matchPrice;
+
+      // Booking type filter
+      let matchBooking = true;
+      if (bookingType === "monthly" && !desc.includes("monthly booking")) matchBooking = false;
+      if (bookingType === "one day" && !desc.includes("one day booking")) matchBooking = false;
+      if (bookingType === "both" && !(desc.includes("monthly booking") || desc.includes("one day booking")))
+        matchBooking = false;
+
+      return matchText && matchPrice && matchBooking;
     });
+
     displayRooms(filtered);
   }
 
   document.getElementById('searchInput').addEventListener('input', applyFilter);
   document.getElementById('priceRange').addEventListener('change', applyFilter);
+  document.getElementById('bookingType').addEventListener('change', applyFilter);
 
   fetchRooms();
 
@@ -370,6 +449,7 @@
     }
   }
 </script>
+
 ...
 
 </body>
