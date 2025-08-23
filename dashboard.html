@@ -250,13 +250,14 @@
 </head>
 <body>
   <h1>Roomofy</h1>
-<!-- Booking Type Filter -->
-<select id="bookingType">
-  <option value="">All Booking Types</option>
-  <option value="monthly">Monthly</option>
-  <option value="one day">One Day</option>
-  <option value="both">Both</option>
-</select>
+
+  <!-- Booking Type Filter -->
+  <select id="bookingType">
+    <option value="">All Booking Types</option>
+    <option value="monthly">Monthly</option>
+    <option value="one day">One Day</option>
+    <option value="both">Both</option>
+  </select>
 
   <div class="filters">
     <input type="text" id="searchInput" placeholder="Search by title or location" />
@@ -275,234 +276,245 @@
     <button id="filterBtn">Apply Filter</button>
   </div>
 
+  <!-- 🔹 Room list container (fix for null error) -->
+  <div id="roomList"></div>
 
-<script>
-  const API_BASE = 'https://roomofy-app-1.onrender.com/api';
-  const roomListDiv = document.getElementById('roomList');
-  let allRooms = [];
+  <!-- 🔹 Search results container (fix for null error) -->
+  <div id="results"></div>
 
-  function generateWhatsAppLink(room) {
-    const message = encodeURIComponent(
-      `Hello, I want to book this room:\n` +
-      `Name: ${room.title}\n` +
-      `Price: ₹${room.price}\n` +
-      `AC/Non-AC: ${room.ac}\n` +
-      `Location: ${room.location}`
-    );
-    const whatsappNumber = '918889930479';
-    return `https://wa.me/${whatsappNumber}?text=${message}`;
-  }
+  <!-- 🔹 Logout button (fix for null onclick error) -->
+  <button id="logoutBtn">Logout</button>
+<!-- Fullscreen Modal -->
+<div id="imgModal" class="modal">
+  <span class="close">&times;</span>
+  <img class="modal-content" id="fullImg">
+</div>
 
-  async function submitRating(roomId, rating, selectEl) {
-    try {
-      const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: Number(rating) })
-      });
+  <script>
+    const API_BASE = 'https://roomofy-app-1.onrender.com/api';
+    const roomListDiv = document.getElementById('roomList');
+    let allRooms = [];
 
-      const data = await res.json();
+    function generateWhatsAppLink(room) {
+      const message = encodeURIComponent(
+        `Hello, I want to book this room:\n` +
+        `Name: ${room.title}\n` +
+        `Price: ₹${room.price}\n` +
+        `AC/Non-AC: ${room.ac}\n` +
+        `Location: ${room.location}`
+      );
+      const whatsappNumber = '918889930479';
+      return `https://wa.me/${whatsappNumber}?text=${message}`;
+    }
 
-      if (!res.ok) {
-        alert(data.message || "Failed to rate room");
+    async function submitRating(roomId, rating, selectEl) {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/rate`, { 
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating: Number(rating) })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to rate room");
+          if (selectEl) selectEl.value = "";
+          return;
+        }
+
+        alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
+        fetchRooms();
+      } catch (err) {
+        console.error("Rate error:", err);
+        alert("Error submitting rating");
         if (selectEl) selectEl.value = "";
+      }
+    }
+
+    function displayRooms(rooms) {
+      if (rooms.length === 0) {
+        roomListDiv.textContent = 'No rooms match your criteria';
         return;
       }
 
-      alert(`Thanks! You rated ${rating} star(s). New average: ${data.averageRating}`);
-      fetchRooms();
-    } catch (err) {
-      console.error("Rate error:", err);
-      alert("Error submitting rating");
-      if (selectEl) selectEl.value = "";
+      roomListDiv.innerHTML = rooms.map(room => {
+        const photos = Array.isArray(room.photos) ? room.photos : [room.photo];
+        let photoHtml = "";
+
+        if (photos.length === 1) {
+          photoHtml = `<img src="${photos[0]}" style="width:100%; height:220px; object-fit:cover; cursor:pointer;" onclick="openFullscreen('${photos[0]}')">`;
+        } else if (photos.length <= 4) {
+          photoHtml = `<div class="photo-grid">` +
+            photos.map(p => `<img src="${p}" onclick="openFullscreen('${p}')">`).join("") +
+          `</div>`;
+        } else {
+          const first4 = photos.slice(0,4);
+          photoHtml = `<div class="photo-grid">` +
+            first4.map((p,i) => {
+              if (i === 3) {
+                return `<div style="position:relative;">
+                          <img src="${p}" onclick="openFullscreen('${p}')">
+                          <div class="more-overlay" onclick="openFullscreen('${p}')">+${photos.length-4}</div>
+                        </div>`;
+              }
+              return `<img src="${p}" onclick="openFullscreen('${p}')">`;
+            }).join("") +
+          `</div>`;
+        }
+
+        return `
+        <div class="room-card" data-price="${room.price}">
+          ${photoHtml}
+          <div class="room-info">
+            <div class="room-title">${room.title}</div>
+            <div class="room-price">₹${room.price}</div>
+            <div class="room-details">${room.ac} | ${room.location}</div>
+            <div class="room-desc">${room.description || ''}</div>
+            <div class="room-rating">⭐ ${room.averageRating ?? 0} / 5</div>
+          </div>
+          <div class="actions">
+            <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
+            <select class="rating-select" onchange="submitRating('${room._id}', this.value, this)">
+              <option value="" disabled selected>Rate</option>
+              <option value="1">1 ★</option>
+              <option value="2">2 ★★</option>
+              <option value="3">3 ★★★</option>
+              <option value="4">4 ★★★★</option>
+              <option value="5">5 ★★★★★</option>
+            </select>
+          </div>
+        </div>`;
+      }).join('');
     }
-  }
 
-  function displayRooms(rooms) {
-    if (rooms.length === 0) {
-      roomListDiv.textContent = 'No rooms match your criteria';
-      return;
-    }
-
-    roomListDiv.innerHTML = rooms.map(room => {
-      const photos = Array.isArray(room.photos) ? room.photos : [room.photo];
-      let photoHtml = "";
-
-      if (photos.length === 1) {
-        photoHtml = `<img src="${photos[0]}" style="width:100%; height:220px; object-fit:cover; cursor:pointer;" onclick="openFullscreen('${photos[0]}')">`;
-      } else if (photos.length <= 4) {
-        photoHtml = `<div class="photo-grid">` +
-          photos.map(p => `<img src="${p}" onclick="openFullscreen('${p}')">`).join("") +
-        `</div>`;
-      } else {
-        const first4 = photos.slice(0,4);
-        photoHtml = `<div class="photo-grid">` +
-          first4.map((p,i) => {
-            if (i === 3) {
-              return `<div style="position:relative;">
-                        <img src="${p}" onclick="openFullscreen('${p}')">
-                        <div class="more-overlay" onclick="openFullscreen('${p}')">+${photos.length-4}</div>
-                      </div>`;
-            }
-            return `<img src="${p}" onclick="openFullscreen('${p}')">`;
-          }).join("") +
-        `</div>`;
+    async function fetchRooms() {
+      try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (!res.ok) {
+          roomListDiv.textContent = 'Failed to load rooms';
+          return;
+        }
+        allRooms = await res.json();
+        displayRooms(allRooms);
+      } catch (err) {
+        roomListDiv.textContent = 'Network error. Please try again later.';
       }
-
-      return `
-      <div class="room-card" data-price="${room.price}">
-        ${photoHtml}
-        <div class="room-info">
-          <div class="room-title">${room.title}</div>
-          <div class="room-price">₹${room.price}</div>
-          <div class="room-details">${room.ac} | ${room.location}</div>
-          <div class="room-desc">${room.description || ''}</div>
-          <div class="room-rating">⭐ ${room.averageRating ?? 0} / 5</div>
-        </div>
-        <div class="actions">
-          <button class="book-btn" onclick="window.open('${generateWhatsAppLink(room)}', '_blank')">Book Now</button>
-          <select class="rating-select" onchange="submitRating('${room._id}', this.value, this)">
-            <option value="" disabled selected>Rate</option>
-            <option value="1">1 ★</option>
-            <option value="2">2 ★★</option>
-            <option value="3">3 ★★★</option>
-            <option value="4">4 ★★★★</option>
-            <option value="5">5 ★★★★★</option>
-          </select>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  async function fetchRooms() {
-    try {
-      const res = await fetch(`${API_BASE}/rooms`);
-      if (!res.ok) {
-        roomListDiv.textContent = 'Failed to load rooms';
-        return;
-      }
-      allRooms = await res.json();
-      displayRooms(allRooms);
-    } catch (err) {
-      roomListDiv.textContent = 'Network error. Please try again later.';
     }
-  }
 
-  function applyFilter() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const range = document.getElementById('priceRange').value;
-    const bookingType = document.getElementById('bookingType').value; // new filter
+    function applyFilter() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const range = document.getElementById('priceRange').value;
+      const bookingType = document.getElementById('bookingType').value; // new filter
 
-    let minPrice = 0, maxPrice = Infinity;
-    if (range) [minPrice, maxPrice] = range.split('-').map(Number);
+      let minPrice = 0, maxPrice = Infinity;
+      if (range) [minPrice, maxPrice] = range.split('-').map(Number);
 
-    const filtered = allRooms.filter(room => {
-      const desc = (room.description || "").toLowerCase();
-      const matchText = (room.title || '').toLowerCase().includes(searchTerm) ||
-                        (room.location || '').toLowerCase().includes(searchTerm);
-      const matchPrice = Number(room.price) >= minPrice && Number(room.price) <= maxPrice;
+      const filtered = allRooms.filter(room => {
+        const desc = (room.description || "").toLowerCase();
+        const matchText = (room.title || '').toLowerCase().includes(searchTerm) ||
+                          (room.location || '').toLowerCase().includes(searchTerm);
+        const matchPrice = Number(room.price) >= minPrice && Number(room.price) <= maxPrice;
 
-      // Booking type filter
-      let matchBooking = true;
+        // Booking type filter
+        let matchBooking = true;
 
-   // Keywords list for smart matching
-   const monthlyKeywords = ["monthly", "per month", "every month", "month wise", "permanent", "long stay"];
-   const dailyKeywords   = ["one day", "per day", "daily", "day wise", "short stay"];
+        // Keywords list for smart matching
+        const monthlyKeywords = ["monthly", "per month", "every month", "month wise", "permanent", "long stay"];
+        const dailyKeywords   = ["one day", "per day", "daily", "day wise", "short stay"];
 
-   if (bookingType === "monthly") {
-     if (!monthlyKeywords.some(word => desc.includes(word))) {
-       matchBooking = false;
-     }
-   }
+        if (bookingType === "monthly") {
+          if (!monthlyKeywords.some(word => desc.includes(word))) {
+            matchBooking = false;
+          }
+        }
 
-   if (bookingType === "one day") {
-     if (!dailyKeywords.some(word => desc.includes(word))) {
-       matchBooking = false;
-     }
-   }
+        if (bookingType === "one day") {
+          if (!dailyKeywords.some(word => desc.includes(word))) {
+            matchBooking = false;
+          }
+        }
 
-   if (bookingType === "both") {
-     if (!(monthlyKeywords.some(word => desc.includes(word)) || dailyKeywords.some(word => desc.includes(word)))) {
-       matchBooking = false;
-     }
-   }
+        if (bookingType === "both") {
+          if (!(monthlyKeywords.some(word => desc.includes(word)) || dailyKeywords.some(word => desc.includes(word)))) {
+            matchBooking = false;
+          }
+        }
 
-   return matchText && matchPrice && matchBooking;
- });
-
- displayRooms(filtered);
-}
-
-document.getElementById('searchInput').addEventListener('input', applyFilter);
-document.getElementById('priceRange').addEventListener('change', applyFilter);
-document.getElementById('bookingType').addEventListener('change', applyFilter);
-
-fetchRooms();
-
-// fullscreen modal logic
-const modal = document.getElementById("imgModal");
-const modalImg = document.getElementById("fullImg");
-const closeBtn = document.querySelector(".modal .close");
-
-function openFullscreen(src) {
-  modal.style.display = "block";
-  modalImg.src = src;
-}
-
-closeBtn.onclick = function() {
-  modal.style.display = "none";
-}
-
-modal.onclick = function(e) {
-  if (e.target == modal) {
-    modal.style.display = "none";
-  }
-}
-async function searchRooms() {
-  const query = document.getElementById("searchBox").value.trim();
-  if (!query) {
-    alert("Please type something to search!");
-    return;
-  }
-
-  try {
-const response = await fetch(`${API_BASE}/search/suggest`, {
-
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-
-    const data = await response.json();
-    const resultsDiv = document.getElementById("results");
-    resultsDiv.innerHTML = "";
-
-    if (data.suggestions && data.suggestions.length > 0) {
-      data.suggestions.forEach(room => {
-        const div = document.createElement("div");
-        div.style.border = "1px solid #ddd";
-        div.style.margin = "10px 0";
-        div.style.padding = "10px";
-        div.style.borderRadius = "8px";
-        div.innerHTML = `
-          <h3 style="margin:0; color:#d32f2f;">${room.title}</h3>
-          <p><strong>Location:</strong> ${room.location}</p>
-          <p><strong>Price:</strong> ₹${room.price}</p>
-          <p>${room.description || ""}</p>
-        `;
-        resultsDiv.appendChild(div);
+        return matchText && matchPrice && matchBooking;
       });
-    } else {
-      resultsDiv.innerHTML = "<p>No results found for your query.</p>";
+
+      displayRooms(filtered);
     }
-  } catch (err) {
-    console.error("Search error:", err);
-    alert("Error while searching. Please try again.");
-  }
-}
-</script>
 
-...
+    document.getElementById('searchInput').addEventListener('input', applyFilter);
+    document.getElementById('priceRange').addEventListener('change', applyFilter);
+    document.getElementById('bookingType').addEventListener('change', applyFilter);
 
+    fetchRooms();
+
+    // fullscreen modal logic
+    const modal = document.getElementById("imgModal");
+    const modalImg = document.getElementById("fullImg");
+    const closeBtn = document.querySelector(".modal .close");
+
+    function openFullscreen(src) {
+      modal.style.display = "block";
+      modalImg.src = src;
+    }
+
+    closeBtn.onclick = function() {
+      modal.style.display = "none";
+    }
+
+    modal.onclick = function(e) {
+      if (e.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    async function searchRooms() {
+      const query = document.getElementById("searchBox").value.trim();
+      if (!query) {
+        alert("Please type something to search!");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/search/suggest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        if (data.suggestions && data.suggestions.length > 0) {
+          data.suggestions.forEach(room => {
+            const div = document.createElement("div");
+            div.style.border = "1px solid #ddd";
+            div.style.margin = "10px 0";
+            div.style.padding = "10px";
+            div.style.borderRadius = "8px";
+            div.innerHTML = `
+              <h3 style="margin:0; color:#d32f2f;">${room.title}</h3>
+              <p><strong>Location:</strong> ${room.location}</p>
+              <p><strong>Price:</strong> ₹${room.price}</p>
+              <p>${room.description || ""}</p>
+            `;
+            resultsDiv.appendChild(div);
+          });
+        } else {
+          resultsDiv.innerHTML = "<p>No results found for your query.</p>";
+        }
+      } catch (err) {
+        console.error("Search error:", err);
+        alert("Error while searching. Please try again.");
+      }
+    }
+  </script>
 </body>
+
 </html>
