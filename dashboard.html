@@ -412,42 +412,60 @@
 
       // Booking type filter
       let matchBooking = true;
-      if (bookingType === "monthly" && !desc.includes("monthly booking")) matchBooking = false;
-      if (bookingType === "one day" && !desc.includes("one day booking")) matchBooking = false;
-      if (bookingType === "both" && !(desc.includes("monthly booking") || desc.includes("one day booking")))
-        matchBooking = false;
 
-      return matchText && matchPrice && matchBooking;
-    });
+   // Keywords list for smart matching
+   const monthlyKeywords = ["monthly", "per month", "every month", "month wise", "permanent", "long stay"];
+   const dailyKeywords   = ["one day", "per day", "daily", "day wise", "short stay"];
 
-    displayRooms(filtered);
-  }
+   if (bookingType === "monthly") {
+     if (!monthlyKeywords.some(word => desc.includes(word))) {
+       matchBooking = false;
+     }
+   }
 
-  document.getElementById('searchInput').addEventListener('input', applyFilter);
-  document.getElementById('priceRange').addEventListener('change', applyFilter);
-  document.getElementById('bookingType').addEventListener('change', applyFilter);
+   if (bookingType === "one day") {
+     if (!dailyKeywords.some(word => desc.includes(word))) {
+       matchBooking = false;
+     }
+   }
 
-  fetchRooms();
+   if (bookingType === "both") {
+     if (!(monthlyKeywords.some(word => desc.includes(word)) || dailyKeywords.some(word => desc.includes(word)))) {
+       matchBooking = false;
+     }
+   }
 
-  // fullscreen modal logic
-  const modal = document.getElementById("imgModal");
-  const modalImg = document.getElementById("fullImg");
-  const closeBtn = document.querySelector(".modal .close");
+   return matchText && matchPrice && matchBooking;
+ });
 
-  function openFullscreen(src) {
-    modal.style.display = "block";
-    modalImg.src = src;
-  }
+ displayRooms(filtered);
+}
 
-  closeBtn.onclick = function() {
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+document.getElementById('priceRange').addEventListener('change', applyFilter);
+document.getElementById('bookingType').addEventListener('change', applyFilter);
+
+fetchRooms();
+
+// fullscreen modal logic
+const modal = document.getElementById("imgModal");
+const modalImg = document.getElementById("fullImg");
+const closeBtn = document.querySelector(".modal .close");
+
+function openFullscreen(src) {
+  modal.style.display = "block";
+  modalImg.src = src;
+}
+
+closeBtn.onclick = function() {
+  modal.style.display = "none";
+}
+
+modal.onclick = function(e) {
+  if (e.target == modal) {
     modal.style.display = "none";
   }
-
-  modal.onclick = function(e) {
-    if (e.target == modal) {
-      modal.style.display = "none";
-    }
-  }
+}
 </script>
 
 ...
