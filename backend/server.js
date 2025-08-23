@@ -184,6 +184,36 @@ app.use((err, req, res, next) => {
     error: err?.response?.body || err?.message || err,
   });
 });
+// -------------------
+// AI Suggestion / Smart Search Route
+// -------------------
+app.post("/api/search/suggest", async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({ message: "Query required" });
+    }
+
+    // 1. Normalize query (lowercase, trim)
+    const normalized = query.toLowerCase();
+
+    // 2. MongoDB search (title + description)
+    const rooms = await Room.find({
+      $or: [
+        { title: { $regex: normalized, $options: "i" } },
+        { description: { $regex: normalized, $options: "i" } },
+        { location: { $regex: normalized, $options: "i" } },
+      ],
+    }).limit(10);
+
+    // 3. OPTIONAL: AI re-ranking (if you want to integrate OpenAI/GPT later)
+    // For now, we just return MongoDB results
+    res.json({ suggestions: rooms });
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ message: "Error during search", error: err.message });
+  }
+});
 
 // -------------------
 // START SERVER

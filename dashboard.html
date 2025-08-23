@@ -275,15 +275,7 @@
     <button id="filterBtn">Apply Filter</button>
   </div>
 
-  <div class="room-list" id="roomList"></div>
 
-  <!-- Fullscreen Modal -->
-  <div id="imgModal" class="modal">
-    <span class="close">&times;</span>
-    <img class="modal-content" id="fullImg">
-  </div>
-
-...
 <script>
   const API_BASE = 'https://roomofy-app-1.onrender.com/api';
   const roomListDiv = document.getElementById('roomList');
@@ -464,6 +456,47 @@ closeBtn.onclick = function() {
 modal.onclick = function(e) {
   if (e.target == modal) {
     modal.style.display = "none";
+  }
+}
+async function searchRooms() {
+  const query = document.getElementById("searchBox").value.trim();
+  if (!query) {
+    alert("Please type something to search!");
+    return;
+  }
+
+  try {
+    const response = await fetch("https://roomofy-backend.onrender.com/api/search/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+
+    const data = await response.json();
+    const resultsDiv = document.getElementById("results");
+    resultsDiv.innerHTML = "";
+
+    if (data.suggestions && data.suggestions.length > 0) {
+      data.suggestions.forEach(room => {
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ddd";
+        div.style.margin = "10px 0";
+        div.style.padding = "10px";
+        div.style.borderRadius = "8px";
+        div.innerHTML = `
+          <h3 style="margin:0; color:#d32f2f;">${room.title}</h3>
+          <p><strong>Location:</strong> ${room.location}</p>
+          <p><strong>Price:</strong> ₹${room.price}</p>
+          <p>${room.description || ""}</p>
+        `;
+        resultsDiv.appendChild(div);
+      });
+    } else {
+      resultsDiv.innerHTML = "<p>No results found for your query.</p>";
+    }
+  } catch (err) {
+    console.error("Search error:", err);
+    alert("Error while searching. Please try again.");
   }
 }
 </script>
