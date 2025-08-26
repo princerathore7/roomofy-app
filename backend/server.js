@@ -174,27 +174,6 @@ app.post("/api/auth/login", async (req, res) => {
 const roomRoutes = require("./routes/roomRoutes");
 app.use("/api/rooms", roomRoutes);
 
-// ✅ EDIT / UPDATE ROOM (newly added)
-app.put("/api/rooms/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    const updatedRoom = await Room.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updatedRoom) {
-      return res.status(404).json({ message: "Room not found" });
-    }
-
-    res.json({ message: "Room updated successfully", room: updatedRoom });
-  } catch (err) {
-    console.error("Update room error:", err);
-    res.status(500).json({ message: "Failed to update room", error: err.message });
-  }
-});
 
 // -------------------
 // GLOBAL ERROR HANDLER
