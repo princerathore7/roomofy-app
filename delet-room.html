@@ -241,12 +241,12 @@
     editPanel.style.display = "none";
   }
 
-  // ✅ Submit Edit Form (fixed)
+  // ✅ Submit Edit Form (fixed for multer backend)
   document.getElementById("editRoomForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const id = document.getElementById("editId").value;
 
-    // Build FormData instead of JSON
+    // Build FormData (multer expects this)
     const formData = new FormData();
     formData.append("title", document.getElementById("editTitle").value.trim());
     formData.append("price", document.getElementById("editPrice").value.trim());
@@ -254,7 +254,7 @@
     formData.append("location", document.getElementById("editLocation").value.trim());
     formData.append("description", document.getElementById("editDesc").value.trim());
 
-    // Photo URL support
+    // Add photo url (backend handles photoUrls[])
     const photoUrl = document.getElementById("editPhoto").value.trim();
     if (photoUrl) {
       formData.append("photoUrls", photoUrl);
@@ -263,7 +263,7 @@
     try {
       const res = await fetch(`${API_BASE}/rooms/${id}`, {
         method: "PUT",
-        body: formData // ✅ no headers needed, browser will set multipart/form-data
+        body: formData // ✅ no headers, browser sets multipart/form-data
       });
       const result = await res.json();
 
