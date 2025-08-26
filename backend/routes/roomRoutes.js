@@ -21,7 +21,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 // -------------------
-// ✅ PUBLIC POST room (no token required)
+// ✅ POST new room (public)
 // -------------------
 router.post("/", upload.array("photos", 5), async (req, res) => {
   try {
@@ -72,7 +72,7 @@ router.post("/", upload.array("photos", 5), async (req, res) => {
 });
 
 // -------------------
-// GET all rooms (public)
+// ✅ GET all rooms (public)
 // -------------------
 router.get("/", async (req, res) => {
   try {
@@ -83,9 +83,61 @@ router.get("/", async (req, res) => {
   }
 });
 
+// -------------------
+// ✅ UPDATE (Edit) a room
+// -------------------
+router.put("/:id", upload.array("photos", 5), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, location, description, ac, photoUrls } = req.body;
+
+    let photos = [];
+
+    // New photos uploaded?
+    if (req.files && req.files.length > 0) {
+      photos = req.files.map(f => f.path);
+    }
+
+    // Or external photo URLs
+    if (photoUrls) {
+      if (Array.isArray(photoUrls)) {
+        photos = photos.concat(photoUrls);
+      } else {
+        photos = photos.concat(photoUrls.split(",").map(url => url.trim()));
+      }
+    }
+
+    // Prepare update fields
+    const updateFields = {
+      ...(title && { title }),
+      ...(price && { price: Number(price) }),
+      ...(location && { location }),
+      ...(description && { description }),
+      ...(ac && { ac }),
+    };
+
+    if (photos.length > 0) {
+      updateFields.photos = photos;
+    }
+
+    const updatedRoom = await Room.findByIdAndUpdate(id, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedRoom) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    res.json({ message: "Room updated successfully", room: updatedRoom });
+  } catch (err) {
+    console.error("Update room error:", err);
+    res.status(500).json({ error: "Failed to update room", details: err.message });
+  }
+});
 
 // -------------------
-// DELETE a room (public for now)
+// ✅ DELETE a room
 // -------------------
 router.delete("/:id", async (req, res) => {
   try {
@@ -103,7 +155,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // -------------------
-// HIDE / UNHIDE a room
+// ✅ HIDE / UNHIDE a room
 // -------------------
 router.patch("/:id/hide", async (req, res) => {
   try {
@@ -125,4 +177,5 @@ router.patch("/:id/hide", async (req, res) => {
     res.status(500).json({ error: "Failed to update room visibility", details: err.message });
   }
 });
+
 module.exports = router;
