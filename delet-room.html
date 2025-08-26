@@ -242,40 +242,45 @@
     }
 
     // Submit Edit Form
-    document.getElementById("editRoomForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const id = document.getElementById("editId").value;
-      const data = {
-        title: document.getElementById("editTitle").value,
-        price: document.getElementById("editPrice").value,
-        ac: document.getElementById("editAc").value,
-        location: document.getElementById("editLocation").value,
-        description: document.getElementById("editDesc").value,
-        photos: [document.getElementById("editPhoto").value]
-      };
+   
 
-      try {
-        const res = await fetch(`${API_BASE}/rooms/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        const result = await res.json();
+  document.getElementById("editRoomForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("editId").value;
 
-        if(res.ok) {
-          msgDiv.textContent = "Room updated successfully!";
-          msgDiv.className = "msg success";
-          closeEditPanel();
-          fetchRooms();
-        } else {
-          msgDiv.textContent = result.error || "Failed to update room.";
-          msgDiv.className = "msg error";
-        }
-      } catch (err) {
-        msgDiv.textContent = "Network error. Please try again later.";
+    // ✅ Prepare data exactly as backend expects
+    const data = {
+      title: document.getElementById("editTitle").value.trim(),
+      price: Number(document.getElementById("editPrice").value),
+      ac: document.getElementById("editAc").value,
+      location: document.getElementById("editLocation").value.trim(),
+      description: document.getElementById("editDesc").value.trim(),
+      photoUrls: [document.getElementById("editPhoto").value.trim()] // ✅ backend accepts photoUrls
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        msgDiv.textContent = "Room updated successfully!";
+        msgDiv.className = "msg success";
+        closeEditPanel();
+        fetchRooms();
+      } else {
+        msgDiv.textContent = result.error || result.message || "Failed to update room.";
         msgDiv.className = "msg error";
       }
-    });
+    } catch (err) {
+      msgDiv.textContent = "Network error. Please try again later.";
+      msgDiv.className = "msg error";
+    }
+  });
+
 
     fetchRooms();
   </script>
