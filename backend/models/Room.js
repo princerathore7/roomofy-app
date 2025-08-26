@@ -33,4 +33,5 @@ const roomSchema = new mongoose.Schema({
 roomSchema.set("toJSON", { virtuals: true });
 roomSchema.set("toObject", { virtuals: true });
 
-module.exports = mongoose.model("Room", roomSchema);
+// ✅ Prevent OverwriteModelError
+module.exports = mongoose.models.Room || mongoose.model("Room", roomSchema);
