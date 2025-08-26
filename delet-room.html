@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Delete / Hide Room</title>
+  <title>Delete / Hide / Edit Room</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,12 +64,10 @@
       margin-top: 10px;
     }
     button:hover { background: #b71c1c; }
-    .hide-btn {
-      background: #f57c00;
-    }
-    .hide-btn:hover {
-      background: #e65100;
-    }
+    .hide-btn { background: #f57c00; }
+    .hide-btn:hover { background: #e65100; }
+    .edit-btn { background: #1976d2; }
+    .edit-btn:hover { background: #0d47a1; }
     .msg {
       font-weight: bold;
       margin-top: 10px;
@@ -77,19 +75,75 @@
     }
     .msg.success { color: green; }
     .msg.error { color: red; }
+
+    /* Edit Panel */
+    #editPanel {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 20px;
+      border: 2px solid #d32f2f;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 999;
+      width: 400px;
+      max-width: 95%;
+    }
+    #editPanel h3 { margin-top: 0; }
+    #editPanel label { display:block; margin-top:10px; font-weight:bold; }
+    #editPanel input, #editPanel textarea, #editPanel select {
+      width: 100%; padding: 8px; margin-top:5px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    #editPanel button { margin-top:15px; }
   </style>
 </head>
 <body>
 
-  <h2>Delete / Hide Rooms</h2>
+  <h2>Delete / Hide / Edit Rooms</h2>
   <div id="message" class="msg"></div>
   <div class="room-list" id="roomList"></div>
 
+  <!-- Edit Panel -->
+  <div id="editPanel">
+    <h3>Edit Room</h3>
+    <form id="editRoomForm">
+      <input type="hidden" id="editId">
+
+      <label>Title</label>
+      <input type="text" id="editTitle" required>
+
+      <label>Price</label>
+      <input type="number" id="editPrice" required>
+
+      <label>AC / Non-AC</label>
+      <select id="editAc">
+        <option value="AC">AC</option>
+        <option value="Non-AC">Non-AC</option>
+      </select>
+
+      <label>Location</label>
+      <input type="text" id="editLocation">
+
+      <label>Description</label>
+      <textarea id="editDesc"></textarea>
+
+      <label>Photo URL</label>
+      <input type="text" id="editPhoto">
+
+      <button type="submit">💾 Save Changes</button>
+      <button type="button" onclick="closeEditPanel()">❌ Cancel</button>
+    </form>
+  </div>
+
   <script>
-const API_BASE = "https://roomofy-app-1.onrender.com/api";
- // FIXED ✅ (remove extra /api if not used)
+    const API_BASE = "https://roomofy-app-1.onrender.com/api";
     const roomListDiv = document.getElementById('roomList');
     const msgDiv = document.getElementById('message');
+    const editPanel = document.getElementById('editPanel');
 
     // Fetch and display rooms
     async function fetchRooms() {
@@ -114,6 +168,7 @@ const API_BASE = "https://roomofy-app-1.onrender.com/api";
               <button class="hide-btn" onclick="toggleHide('${room._id}', ${!room.isHidden})">
                 ${room.isHidden ? 'Unhide' : 'Hide'}
               </button>
+              <button class="edit-btn" onclick="openEditPanel(${JSON.stringify(room).replace(/"/g,'&quot;')})">Edit</button>
             </div>
           </div>
         `).join('');
@@ -168,6 +223,59 @@ const API_BASE = "https://roomofy-app-1.onrender.com/api";
         msgDiv.className = 'msg error';
       }
     }
+
+    // Open Edit Panel
+    function openEditPanel(room) {
+      editPanel.style.display = "block";
+      document.getElementById("editId").value = room._id;
+      document.getElementById("editTitle").value = room.title || "";
+      document.getElementById("editPrice").value = room.price || "";
+      document.getElementById("editAc").value = room.ac || "AC";
+      document.getElementById("editLocation").value = room.location || "";
+      document.getElementById("editDesc").value = room.description || "";
+      document.getElementById("editPhoto").value = room.photos && room.photos.length > 0 ? room.photos[0] : "";
+    }
+
+    // Close Edit Panel
+    function closeEditPanel() {
+      editPanel.style.display = "none";
+    }
+
+    // Submit Edit Form
+    document.getElementById("editRoomForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("editId").value;
+      const data = {
+        title: document.getElementById("editTitle").value,
+        price: document.getElementById("editPrice").value,
+        ac: document.getElementById("editAc").value,
+        location: document.getElementById("editLocation").value,
+        description: document.getElementById("editDesc").value,
+        photos: [document.getElementById("editPhoto").value]
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        if(res.ok) {
+          msgDiv.textContent = "Room updated successfully!";
+          msgDiv.className = "msg success";
+          closeEditPanel();
+          fetchRooms();
+        } else {
+          msgDiv.textContent = result.error || "Failed to update room.";
+          msgDiv.className = "msg error";
+        }
+      } catch (err) {
+        msgDiv.textContent = "Network error. Please try again later.";
+        msgDiv.className = "msg error";
+      }
+    });
 
     fetchRooms();
   </script>

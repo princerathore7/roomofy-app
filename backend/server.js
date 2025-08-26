@@ -62,7 +62,6 @@ const corsOptions = {
 };
 
 app.use((req, res, next) => {
-  // Useful to see incoming Origin during debugging
   if (process.env.NODE_ENV !== "production") {
     // console.log("Incoming Origin:", req.headers.origin);
   }
@@ -70,14 +69,13 @@ app.use((req, res, next) => {
 });
 
 app.use(cors(corsOptions));
-// Handle preflight for all routes
 app.options("*", cors(corsOptions));
 
 // Body parser
 app.use(express.json({ limit: "1mb" }));
 
 // -------------------
-// HEALTH CHECK (for quick diagnostics)
+// HEALTH CHECK
 // -------------------
 app.get("/health", (req, res) => {
   return res.status(200).json({
@@ -108,6 +106,17 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
+const roomSchema = new mongoose.Schema({
+  title: String,
+  price: Number,
+  description: String,
+  ac: String,
+  location: String,
+  photos: [String],
+  isHidden: { type: Boolean, default: false },
+});
+const Room = mongoose.model("Room", roomSchema);
+
 // -------------------
 // AUTH ROUTES
 // -------------------
@@ -128,9 +137,7 @@ app.post("/api/auth/signup", async (req, res) => {
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     console.error("Signup error:", err);
-    res
-      .status(500)
-      .json({ message: "Server error during signup", error: err.message });
+    res.status(500).json({ message: "Server error during signup", error: err.message });
   }
 });
 
@@ -157,23 +164,42 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({ token, user: { mobile: user.mobile, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error("Login error:", err);
-    res
-      .status(500)
-      .json({ message: "Server error during login", error: err.message });
+    res.status(500).json({ message: "Server error during login", error: err.message });
   }
 });
 
 // -------------------
-// ROOM ROUTES (separate file)
+// ROOM ROUTES
 // -------------------
 const roomRoutes = require("./routes/roomRoutes");
 app.use("/api/rooms", roomRoutes);
 
+// ✅ EDIT / UPDATE ROOM (newly added)
+app.put("/api/rooms/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updatedRoom = await Room.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    res.json({ message: "Room updated successfully", room: updatedRoom });
+  } catch (err) {
+    console.error("Update room error:", err);
+    res.status(500).json({ message: "Failed to update room", error: err.message });
+  }
+});
+
 // -------------------
-// GLOBAL ERROR HANDLER (CORS aware)
+// GLOBAL ERROR HANDLER
 // -------------------
 app.use((err, req, res, next) => {
-  // CORS errors should return 403 to make it obvious in frontend
   if (err && String(err.message || "").startsWith("CORS policy")) {
     console.error("CORS blocked:", err.message);
     return res.status(403).json({ message: err.message });
@@ -184,6 +210,7 @@ app.use((err, req, res, next) => {
     error: err?.response?.body || err?.message || err,
   });
 });
+
 // -------------------
 // AI Suggestion / Smart Search Route
 // -------------------
@@ -194,10 +221,8 @@ app.post("/api/search/suggest", async (req, res) => {
       return res.status(400).json({ message: "Query required" });
     }
 
-    // 1. Normalize query (lowercase, trim)
     const normalized = query.toLowerCase();
 
-    // 2. MongoDB search (title + description)
     const rooms = await Room.find({
       $or: [
         { title: { $regex: normalized, $options: "i" } },
@@ -206,8 +231,6 @@ app.post("/api/search/suggest", async (req, res) => {
       ],
     }).limit(10);
 
-    // 3. OPTIONAL: AI re-ranking (if you want to integrate OpenAI/GPT later)
-    // For now, we just return MongoDB results
     res.json({ suggestions: rooms });
   } catch (err) {
     console.error("Search error:", err);
