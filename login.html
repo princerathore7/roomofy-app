@@ -4,121 +4,140 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roomofy - Login / Signup</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
-      color: rgb(246, 0, 0);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .container {
-      background: #fff;
-      color: #000;
-      padding: 24px;
-      border-radius: 12px;
-      width: 360px;
-      box-sizing: border-box;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    form {
-      display: flex;  
-      flex-direction: column;
-      gap: 10px;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background: rgb(214, 1, 1);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 8px;
-      transition: background 0.2s ease-in-out;
-    }
-    button:hover {
-      background: darkred;
-    }
-    .toggle-link {
-      cursor: pointer;
-      color: rgb(193, 3, 3);
-      text-align: center;
-      margin-top: 8px;
-      font-size: 14px;
-      user-select: none;
-    }
-    h2 {
-      color: rgb(195, 0, 0);
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .message {
-      text-align: center;
-      font-size: 14px;
-      min-height: 18px;
-      margin-top: 5px;
-    }
-    .message.success {
-      color: green;
-    }
-    .message.error {
-      color: red;
-    }
-    .extra-links {
-      margin-top: 15px;
-      font-size: 14px;
-    }
-    .extra-links a {
-      color: #d32f2f;
-      text-decoration: none;
-      margin: 0 8px;
-      font-weight: bold;
-      transition: 0.3s;
-    }
-    .extra-links a:hover {
-      text-decoration: underline;
-    }
-    #processing {
-      display: none;
-      margin: 15px 0;
-      font-size: 16px;
-      color: #333;
-      text-align: center;
-      font-weight: bold;
-    }
-    #timer {
-      font-weight: bold;
-      color: #d32f2f;
-    }
-    #contactMsg {
-      display: none;
-      margin-top: 10px;
-      color: red;
-      text-align: center;
-    }
-      @media (max-height: 600px) {
-      body {
-        align-items: flex-start;
-      }
-      .container {
-        margin-top: 20px;
-      }
-    }
+ <style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
+    color: rgb(246, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
 
-  </style>
+  .container {
+    background: rgba(255, 255, 255, 0.9); /* ❌ pure white → ✅ slight transparent */
+    backdrop-filter: blur(8px); /* subtle glass effect */
+    color: #000;
+    padding: 24px;
+    border-radius: 14px;
+    width: 360px;
+    box-sizing: border-box;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25),
+                0 0 12px rgba(255,0,0,0.4); /* red glow */
+    border: 1px solid rgba(211, 47, 47, 0.4);
+  }
+
+  form {
+    display: flex;  
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1.5px solid #e53935;
+    font-size: 16px;
+    box-sizing: border-box;
+    background: #fff5f5; /* slight red tint background */
+  }
+  input:focus {
+    outline: none;
+    border-color: #c62828;
+    box-shadow: 0 0 6px rgba(214, 1, 1, 0.5);
+    background: #fff0f0;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 8px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: background 0.3s ease-in-out, transform 0.2s;
+  }
+  button:hover {
+    background: linear-gradient(135deg, #b71c1c, #880e4f);
+    transform: translateY(-1px);
+  }
+
+  .toggle-link {
+    cursor: pointer;
+    color: #c62828;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+    user-select: none;
+    font-weight: bold;
+  }
+
+  h2 {
+    color: #b71c1c;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .message {
+    text-align: center;
+    font-size: 14px;
+    min-height: 18px;
+    margin-top: 5px;
+  }
+  .message.success { color: green; }
+  .message.error { color: #d32f2f; }
+
+  .extra-links {
+    margin-top: 15px;
+    font-size: 14px;
+    text-align: center;
+  }
+  .extra-links a {
+    color: #d32f2f;
+    text-decoration: none;
+    margin: 0 8px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  .extra-links a:hover {
+    text-decoration: underline;
+  }
+
+  #processing {
+    display: none;
+    margin: 15px 0;
+    font-size: 16px;
+    color: #333;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  #timer {
+    font-weight: bold;
+    color: #d32f2f;
+  }
+
+  #contactMsg {
+    display: none;
+    margin-top: 10px;
+    color: #d32f2f;
+    text-align: center;
+  }
+
+  @media (max-height: 600px) {
+    body { align-items: flex-start; }
+    .container { margin-top: 20px; }
+  }
+</style>
+
 </head>
 <body>
   <div class="container">
@@ -151,12 +170,22 @@
     </form>
 
     <!-- Signup Form -->
+     <!-- Signup Form -->
     <form id="signupForm" style="display:none;">
       <h2>Signup</h2>
       <input type="text" id="signupMobile" placeholder="Mobile number" required pattern="\d{10}" title="Enter 10-digit mobile number" />
       <input type="password" id="signupPassword" placeholder="Password" required minlength="6" />
       <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required minlength="6" />
-      <button type="submit">Signup</button>
+      <button type="submit" id="signupBtn">Signup</button>
+
+      <!-- Timer & Processing (Signup) -->
+      <div id="processingSignup" style="display:none; margin-top:10px;">
+        Processing your request... <span id="timerSignup">60</span> seconds left
+      </div>
+      <div id="contactMsgSignup" style="display:none;">
+        Signup not completed. Please contact <b>roomofyonline@gmail.com</b>
+      </div>
+
       <p class="message" id="signupMessage"></p>
       <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
     </form>
@@ -183,11 +212,12 @@
   const showLoginLink = document.getElementById('showLogin');
   const loginMobileInput = document.getElementById('loginMobile');
   const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn'); // ✅ add
   const processingDiv = document.getElementById('processing');
   const timerSpan = document.getElementById('timer');
   const contactMsg = document.getElementById('contactMsg');
 
-  let countdown = null; // global countdown ref
+  let countdown = null; 
   let isTimerRunning = false;
 
   // Toggle forms
@@ -216,6 +246,12 @@
     }
   });
 
+  // ✅ Mobile number validator (India only)
+  function isValidIndianMobile(number){
+    const regex = /^[6-9]\d{9}$/; 
+    return regex.test(number);
+  }
+
   // Login API
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -225,6 +261,12 @@
 
     if(!mobile || !password){
       loginMessage.textContent = "Please fill all fields";
+      loginMessage.classList.add('error');
+      return;
+    }
+
+    if(!isValidIndianMobile(mobile)){
+      loginMessage.textContent = "Invalid mobile number";
       loginMessage.classList.add('error');
       return;
     }
@@ -279,6 +321,11 @@
       signupMessage.classList.add('error');
       return;
     }
+    if(!isValidIndianMobile(mobile)){
+      signupMessage.textContent = "Invalid mobile number";
+      signupMessage.classList.add('error');
+      return;
+    }
     if(password !== confirmPassword){
       signupMessage.textContent = "Passwords do not match";
       signupMessage.classList.add('error');
@@ -309,8 +356,8 @@
     }
   });
 
-  // ✅ Login Button Timer (fixed)
-  loginBtn.addEventListener('click', () => {
+  // ✅ Timer Function (shared for login & signup)
+  function startTimer(){
     processingDiv.style.display = 'block';
     contactMsg.style.display = 'none';
 
@@ -331,8 +378,13 @@
         }
       }, 1000);
     }
-  });
+  }
+
+  // ✅ Attach timer on both login & signup buttons
+  loginBtn.addEventListener('click', startTimer);
+  signupBtn.addEventListener('click', startTimer);
 </script>
+
 
 </body>
 </html>
