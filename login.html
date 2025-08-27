@@ -1,390 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roomofy - Login / Signup</title>
- <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roomofy - Login / Signup</title>
+<style>
   body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
-    color: rgb(246, 0, 0);
+    font-family: 'Poppins', Arial, sans-serif;
+    background: linear-gradient(135deg, #ff8a65, #f44336, #e91e63);
     display: flex;
-    align-items: center;
     justify-content: center;
-    height: 100vh;
+    align-items: center;
+    min-height: 100vh;
     margin: 0;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08), transparent 70%);
+    animation: float 25s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes float {
+    0% { transform: translate(0,0) rotate(0deg); }
+    50% { transform: translate(-20px, 30px) rotate(180deg); }
+    100% { transform: translate(0,0) rotate(360deg); }
   }
 
   .container {
-    background: rgba(255, 255, 255, 0.9); /* ❌ pure white → ✅ slight transparent */
-    backdrop-filter: blur(8px); /* subtle glass effect */
-    color: #000;
-    padding: 24px;
-    border-radius: 14px;
+    position: relative;
+    z-index: 1;
     width: 360px;
-    box-sizing: border-box;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25),
-                0 0 12px rgba(255,0,0,0.4); /* red glow */
-    border: 1px solid rgba(211, 47, 47, 0.4);
+    padding: 30px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .container img {
+    border-radius: 20px;
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    transform: scale(1);
+    transition: transform 0.4s ease;
+  }
+  .container img:hover { transform: scale(1.05) rotate(-1deg); }
+
+  h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #ffd700;
+    text-shadow: 0 0 8px #ff4500, 0 0 16px #ff6347;
+    animation: glowText 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glowText {
+    from { text-shadow: 0 0 8px #ff4500, 0 0 16px #ff6347; }
+    to { text-shadow: 0 0 16px #ffd700, 0 0 32px #ffa500; }
   }
 
   form {
-    display: flex;  
+    width: 100%;
+    display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
+    align-items: center;
   }
 
   input {
     width: 100%;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1.5px solid #e53935;
+    padding: 12px 15px;
+    border-radius: 12px;
+    border: none;
     font-size: 16px;
-    box-sizing: border-box;
-    background: #fff5f5; /* slight red tint background */
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transition: all 0.3s ease;
   }
   input:focus {
+    background: rgba(255,255,255,0.35);
+    box-shadow: 0 0 15px #ff6347, 0 0 25px #ff4500;
     outline: none;
-    border-color: #c62828;
-    box-shadow: 0 0 6px rgba(214, 1, 1, 0.5);
-    background: #fff0f0;
+    transform: translateY(-2px);
   }
 
   button {
     width: 100%;
-    padding: 10px;
-    background: linear-gradient(135deg, #d32f2f, #b71c1c);
-    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
     border: none;
-    border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
-    margin-top: 8px;
     font-weight: bold;
-    letter-spacing: 0.5px;
-    transition: background 0.3s ease-in-out, transform 0.2s;
+    background: linear-gradient(135deg, #ff4500, #ff6347);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
   }
   button:hover {
-    background: linear-gradient(135deg, #b71c1c, #880e4f);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #ffd700, #ffa500);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5), 0 0 20px #ff6347;
   }
 
   .toggle-link {
-    cursor: pointer;
-    color: #c62828;
-    text-align: center;
-    margin-top: 8px;
-    font-size: 14px;
-    user-select: none;
     font-weight: bold;
+    cursor: pointer;
+    color: #fff;
+    text-decoration: underline;
+    transition: color 0.3s;
   }
-
-  h2 {
-    color: #b71c1c;
-    text-align: center;
-    margin-bottom: 12px;
-  }
+  .toggle-link:hover { color: #ffd700; }
 
   .message {
-    text-align: center;
     font-size: 14px;
     min-height: 18px;
-    margin-top: 5px;
+    text-align: center;
   }
-  .message.success { color: green; }
-  .message.error { color: #d32f2f; }
+  .message.success { color: #00ff7f; }
+  .message.error { color: #ff6347; }
 
   .extra-links {
-    margin-top: 15px;
-    font-size: 14px;
+    margin-top: 18px;
     text-align: center;
+    font-size: 14px;
   }
   .extra-links a {
-    color: #d32f2f;
+    color: #ffd700;
     text-decoration: none;
-    margin: 0 8px;
+    margin: 0 6px;
     font-weight: bold;
-    transition: 0.3s;
+    transition: all 0.3s;
   }
-  .extra-links a:hover {
-    text-decoration: underline;
-  }
+  .extra-links a:hover { color: #ff4500; text-decoration: underline; }
 
-  #processing {
-    display: none;
-    margin: 15px 0;
-    font-size: 16px;
-    color: #333;
+  #processing, #contactMsg {
+    font-weight: bold;
     text-align: center;
-    font-weight: bold;
-  }
-
-  #timer {
-    font-weight: bold;
-    color: #d32f2f;
-  }
-
-  #contactMsg {
-    display: none;
+    color: #fff;
     margin-top: 10px;
-    color: #d32f2f;
+  }
+
+  #fadingLines {
+    min-height: 22px;
+    margin: 8px 0;
+    color: #fff;
+    font-weight: bold;
     text-align: center;
   }
 
-  @media (max-height: 600px) {
-    body { align-items: flex-start; }
-    .container { margin-top: 20px; }
+  @media (max-width: 420px) {
+    .container { width: 90%; padding: 20px; }
+    h2 { font-size: 20px; }
+    input, button { font-size: 14px; padding: 10px; }
   }
 </style>
-
 </head>
 <body>
-  <div class="container">
-    <!-- Banner -->
-    <div style="text-align:center; margin-bottom:15px;">
-      <img src="https://i.ibb.co/7xfPJNfR/Gemini-Generated-Image-hj2mc2hj2mc2hj2m.png" 
-           alt="Welcome to Roomofy" 
-           style="max-width:100%; height:auto; border-radius:10px;">
-      <p style="margin-top:8px; font-weight:bold; color:rgb(195,0,0);">
-        Welcome to Roomofy! <br> Find the perfect room for your family & friends.
-      </p>
-    </div>
 
-    <!-- Timer & Processing -->
-    <div id="processing">
-      Processing your request... <span id="timer">60</span> seconds left
-    </div>
-    <div id="contactMsg">
-      Login not completed. Please contact <b>roomofyonline@gmail.com</b>
-    </div>
+<div class="container">
+  <img src="https://i.ibb.co/7xfPJNfR/Gemini-Generated-Image-hj2mc2hj2mc2hj2m.png" alt="Family Banner">
 
-    <!-- Login Form -->
-    <form id="loginForm">
-      <h2>Roomofy Login</h2>
-      <input type="text" id="loginMobile" placeholder="Mobile number" required pattern="\d{10}" title="Enter 10-digit mobile number" />
-      <input type="password" id="loginPassword" placeholder="Password" required minlength="6" />
-      <button type="submit" id="loginBtn">Login</button>
-      <p class="message" id="loginMessage"></p>
-      <p class="toggle-link" id="showSignup">Don't have an account? Signup here</p>
-    </form>
+  <div id="processing" style="display:none;">Processing your request... <span id="timer">60</span>s left</div>
+  <div id="contactMsg" style="display:none;">Login not completed. Please contact <b>roomofyonline@gmail.com</b></div>
+  <div id="fadingLines"></div>
 
-    <!-- Signup Form -->
-     <!-- Signup Form -->
-    <form id="signupForm" style="display:none;">
-      <h2>Signup</h2>
-      <input type="text" id="signupMobile" placeholder="Mobile number" required pattern="\d{10}" title="Enter 10-digit mobile number" />
-      <input type="password" id="signupPassword" placeholder="Password" required minlength="6" />
-      <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required minlength="6" />
-      <button type="submit" id="signupBtn">Signup</button>
+  <form id="loginForm">
+    <h2>Roomofy Login</h2>
+    <input type="text" id="loginMobile" placeholder="Mobile number" required pattern="\d{10}" />
+    <input type="password" id="loginPassword" placeholder="Password" required minlength="6"/>
+    <button type="submit" id="loginBtn">Login</button>
+    <p class="message" id="loginMessage"></p>
+    <p class="toggle-link" id="showSignup">Don't have an account? Signup here</p>
+  </form>
 
-      <!-- Timer & Processing (Signup) -->
-      <div id="processingSignup" style="display:none; margin-top:10px;">
-        Processing your request... <span id="timerSignup">60</span> seconds left
-      </div>
-      <div id="contactMsgSignup" style="display:none;">
-        Signup not completed. Please contact <b>roomofyonline@gmail.com</b>
-      </div>
+  <form id="signupForm" style="display:none;">
+    <h2>Signup</h2>
+    <input type="text" id="signupMobile" placeholder="Mobile number" required pattern="\d{10}" />
+    <input type="password" id="signupPassword" placeholder="Password" required minlength="6"/>
+    <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required minlength="6"/>
+    <button type="submit" id="signupBtn">Signup</button>
+    <p class="message" id="signupMessage"></p>
+    <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
+  </form>
 
-      <p class="message" id="signupMessage"></p>
-      <p class="toggle-link" id="showLogin">Already have an account? Login here</p>
-    </form>
-
-    <!-- Extra Links -->
-    <div class="extra-links">
-      <a href="privacy.policy.html">Privacy Policy</a> | 
-        <a href="terms-and-conditions.html">Terms & Conditions</a>
-      <a href="about.html">About Us</a> | 
-      <a href="how to use.html">How to Use</a>
-    </div>
+  <div class="extra-links">
+    <a href="privacy.policy.html" target="_blank">Privacy Policy</a> | 
+    <a href="terms-and-conditions.html" target="_blank">Terms & Conditions</a> | 
+    <a href="about.html" target="_blank">About Us</a> | 
+    <a href="how to use.html" target="_blank">How to Use</a>
   </div>
+</div>
 
 <script>
-  const API_BASE = window.location.hostname.includes('localhost') 
-    ? 'http://localhost:5000/api'
-    : 'https://roomofy-app-1.onrender.com/api';
+const API_BASE = window.location.hostname.includes('localhost') 
+  ? 'http://localhost:5000/api'
+  : 'https://roomofy-app-1.onrender.com/api';
 
-  const loginForm = document.getElementById('loginForm');
-  const signupForm = document.getElementById('signupForm');
-  const loginMessage = document.getElementById('loginMessage');
-  const signupMessage = document.getElementById('signupMessage');
-  const showSignupLink = document.getElementById('showSignup');
-  const showLoginLink = document.getElementById('showLogin');
-  const loginMobileInput = document.getElementById('loginMobile');
-  const loginBtn = document.getElementById('loginBtn');
-  const signupBtn = document.getElementById('signupBtn'); // ✅ add
-  const processingDiv = document.getElementById('processing');
-  const timerSpan = document.getElementById('timer');
-  const contactMsg = document.getElementById('contactMsg');
+const loginForm = document.getElementById('loginForm');
+const signupForm = document.getElementById('signupForm');
+const loginMessage = document.getElementById('loginMessage');
+const signupMessage = document.getElementById('signupMessage');
+const showSignupLink = document.getElementById('showSignup');
+const showLoginLink = document.getElementById('showLogin');
+const loginMobileInput = document.getElementById('loginMobile');
+const loginBtn = document.getElementById('loginBtn');
+const signupBtn = document.getElementById('signupBtn');
+const processingDiv = document.getElementById('processing');
+const contactMsg = document.getElementById('contactMsg');
+const fadingLinesDiv = document.getElementById('fadingLines');
 
-  let countdown = null; 
-  let isTimerRunning = false;
+let countdown = null;
+let lineTimer = null;
+let lineIndex = 0;
+let isTimerRunning = false; // initial false, taaki start ho sake
 
-  // Toggle forms
-  showSignupLink.addEventListener('click', () => {
-    loginForm.style.display = 'none';
-    signupForm.style.display = 'flex';
-    clearMessages();
-  });
-  showLoginLink.addEventListener('click', () => {
-    signupForm.style.display = 'none';
-    loginForm.style.display = 'flex';
-    clearMessages();
-  });
+const lines = [
+  "We provide the best rooms for your family.",
+  "Trusted by thousands of happy customers.",
+  "Secure and verified listings.",
+  "Find rooms near your favorite locations.",
+  "Easy and fast booking process.",
+  "Affordable prices without compromise.",
+  "Check verified reviews before booking.",
+  "Customer support always ready for you.",
+  "Rooms that feel like home.",
+  "Join our community of happy tenants."
+];
 
-  function clearMessages() {
-    loginMessage.textContent = '';
-    signupMessage.textContent = '';
-    loginMessage.classList.remove('success','error');
-    signupMessage.classList.remove('success','error');
+// Toggle forms
+showSignupLink.addEventListener('click', () => {
+  loginForm.style.display = 'none';
+  signupForm.style.display = 'flex';
+  stopTimerAndLines();
+  clearMessages();
+});
+
+showLoginLink.addEventListener('click', () => {
+  signupForm.style.display = 'none';
+  loginForm.style.display = 'flex';
+  stopTimerAndLines();
+  clearMessages();
+});
+
+function clearMessages() {
+  loginMessage.textContent = '';
+  signupMessage.textContent = '';
+  loginMessage.classList.remove('success','error');
+  signupMessage.classList.remove('success','error');
+}
+
+// Admin redirect
+loginMobileInput.addEventListener('input', () => {
+  if(loginMobileInput.value.trim().toLowerCase() === "burizaemon"){
+    window.location.href = "admin.html";
+  }
+});
+
+// Mobile validator
+function isValidIndianMobile(number){
+  return /^[6-9]\d{9}$/.test(number);
+}
+
+// Login API
+loginForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  clearMessages();
+  const mobile = loginMobileInput.value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+
+  if(!mobile || !password){
+    loginMessage.textContent = "Please fill all fields";
+    loginMessage.classList.add('error');
+    return;
+  }
+  if(!isValidIndianMobile(mobile)){
+    loginMessage.textContent = "Invalid mobile number";
+    loginMessage.classList.add('error');
+    return;
   }
 
-  // Admin redirect on typing "burizaemon"
-  loginMobileInput.addEventListener('input', () => {
-    if(loginMobileInput.value.trim().toLowerCase() === "burizaemon"){
-      window.location.href = "admin.html";
-    }
-  });
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile,password})
+    });
+    const data = await res.json().catch(()=>null);
 
-  // ✅ Mobile number validator (India only)
-  function isValidIndianMobile(number){
-    const regex = /^[6-9]\d{9}$/; 
-    return regex.test(number);
+    if(!res.ok){
+      loginMessage.textContent = data?.message || "Login failed";
+      loginMessage.classList.add('error');
+      stopTimerAndLines();
+      return;
+    }
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('mobile', data.user.mobile);
+    localStorage.setItem('isAdmin', data.user.isAdmin);
+
+    loginMessage.textContent = 'Login successful! Redirecting...';
+    loginMessage.classList.add('success');
+    stopTimerAndLines();
+
+    setTimeout(()=>window.location.href='dashboard.html', 1200);
+  } catch(err) {
+    loginMessage.textContent = "Network error, please check console.";
+    loginMessage.classList.add('error');
+    stopTimerAndLines();
+  }
+});
+
+// Signup API
+signupForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  clearMessages();
+  const mobile = document.getElementById('signupMobile').value.trim();
+  const password = document.getElementById('signupPassword').value.trim();
+  const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+
+  if(!mobile || !password || !confirmPassword){
+    signupMessage.textContent = "Please fill all fields";
+    signupMessage.classList.add('error');
+    return;
+  }
+  if(!isValidIndianMobile(mobile)){
+    signupMessage.textContent = "Invalid mobile number";
+    signupMessage.classList.add('error');
+    return;
+  }
+  if(password !== confirmPassword){
+    signupMessage.textContent = "Passwords do not match";
+    signupMessage.classList.add('error');
+    return;
   }
 
-  // Login API
-  loginForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    clearMessages();
-    const mobile = loginMobileInput.value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
+  try {
+    const res = await fetch(`${API_BASE}/auth/signup`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile,password})
+    });
+    const data = await res.json().catch(()=>null);
 
-    if(!mobile || !password){
-      loginMessage.textContent = "Please fill all fields";
-      loginMessage.classList.add('error');
-      return;
-    }
-
-    if(!isValidIndianMobile(mobile)){
-      loginMessage.textContent = "Invalid mobile number";
-      loginMessage.classList.add('error');
-      return;
-    }
-
-    try{
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mobile,password})
-      });
-      const data = await res.json().catch(()=>null);
-
-      if(!res.ok){
-        loginMessage.textContent = data?.message || "Login failed";
-        loginMessage.classList.add('error');
-        return;
-      }
-
-      // ✅ Clear timer on successful login
-      if (countdown) {
-        clearInterval(countdown);
-        countdown = null;
-        isTimerRunning = false;
-        timerSpan.textContent = "";
-        contactMsg.style.display = "none";
-      }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('mobile', data.user.mobile);
-      localStorage.setItem('isAdmin', data.user.isAdmin);
-
-      loginMessage.textContent = 'Login successful! Redirecting...';
-      loginMessage.classList.add('success');
-
-      setTimeout(()=>window.location.href='dashboard.html', 1200);
-    }catch(err){
-      loginMessage.textContent = "Network error, please check console.";
-      loginMessage.classList.add('error');
-    }
-  });
-
-  // Signup API
-  signupForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    clearMessages();
-    const mobile = document.getElementById('signupMobile').value.trim();
-    const password = document.getElementById('signupPassword').value.trim();
-    const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
-
-    if(!mobile || !password || !confirmPassword){
-      signupMessage.textContent = "Please fill all fields";
+    if(!res.ok){
+      signupMessage.textContent = data?.message || "Signup failed";
       signupMessage.classList.add('error');
-      return;
-    }
-    if(!isValidIndianMobile(mobile)){
-      signupMessage.textContent = "Invalid mobile number";
-      signupMessage.classList.add('error');
-      return;
-    }
-    if(password !== confirmPassword){
-      signupMessage.textContent = "Passwords do not match";
-      signupMessage.classList.add('error');
+      stopTimerAndLines();
       return;
     }
 
-    try{
-      const res = await fetch(`${API_BASE}/auth/signup`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mobile,password})
-      });
-      const data = await res.json().catch(()=>null);
+    signupMessage.textContent = "Signup successful! Please login.";
+    signupMessage.classList.add('success');
+    stopTimerAndLines();
 
-      if(!res.ok){
-        signupMessage.textContent = data?.message || "Signup failed";
-        signupMessage.classList.add('error');
-        return;
-      }
-
-      signupMessage.textContent = "Signup successful! Please login.";
-      signupMessage.classList.add('success');
-
-      setTimeout(()=>{ signupForm.style.display='none'; loginForm.style.display='flex'; clearMessages(); },2000);
-    }catch(err){
-      signupMessage.textContent = "Network error, please check console.";
-      signupMessage.classList.add('error');
-    }
-  });
-
-  // ✅ Timer Function (shared for login & signup)
-  function startTimer(){
-    processingDiv.style.display = 'block';
-    contactMsg.style.display = 'none';
-
-    if (!isTimerRunning) {
-      isTimerRunning = true;
-      let timeLeft = 60;
-      timerSpan.textContent = `⏳ Please wait... ${timeLeft}s`;
-
-      countdown = setInterval(() => {
-        timeLeft--;
-        timerSpan.textContent = `⏳ Please wait... ${timeLeft}s`;
-        if (timeLeft <= 0) {
-          clearInterval(countdown);
-          countdown = null;
-          isTimerRunning = false;
-          timerSpan.textContent = "";
-          contactMsg.style.display = "block";
-        }
-      }, 1000);
-    }
+    setTimeout(()=>{ signupForm.style.display='none'; loginForm.style.display='flex'; clearMessages(); },2000);
+  } catch(err){
+    signupMessage.textContent = "Network error, please check console.";
+    signupMessage.classList.add('error');
+    stopTimerAndLines();
   }
+});
 
-  // ✅ Attach timer on both login & signup buttons
-  loginBtn.addEventListener('click', startTimer);
-  signupBtn.addEventListener('click', startTimer);
+// Timer + Lines
+function startTimerAndLines() {
+  processingDiv.style.display = 'block';
+  contactMsg.style.display = 'none';
+  lineIndex = 0;
+  fadingLinesDiv.textContent = "";
+
+  if (!isTimerRunning) {
+    isTimerRunning = true;
+    let timeLeft = 60;
+    countdown = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer').textContent = timeLeft;
+      if(timeLeft <= 0) {
+        stopTimerAndLines();
+        contactMsg.style.display = "block";
+      }
+    }, 1000);
+
+    lineTimer = setInterval(() => {
+      fadingLinesDiv.textContent = lines[lineIndex];
+      lineIndex = (lineIndex + 1) % lines.length;
+    }, 1500);
+  }
+}
+
+
+function stopTimerAndLines() {
+  clearInterval(countdown);
+  clearInterval(lineTimer);
+  countdown = null;
+  lineTimer = null;
+  isTimerRunning = false;
+  processingDiv.style.display = 'none';
+  fadingLinesDiv.textContent = "";
+}
+
+loginBtn.addEventListener('click', startTimerAndLines);
+signupBtn.addEventListener('click', startTimerAndLines);
+
 </script>
-
-
 </body>
 </html>
