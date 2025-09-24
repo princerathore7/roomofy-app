@@ -3,33 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Roomofy online </title>
+  <title>Roomofy Online</title>
   <meta name="google-site-verification" content="zEXxvIWXx7DYY6r359vaCKufqOLAT4yPLiOSnSJjie4" />
-<meta name="google-adsense-account" content="ca-pub-7342369119079593">
- <script>(function(s){s.dataset.zone='9823631',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
- <meta name="monetag" content="e1c3600f8329495344057fcd9f66a876">
- <style>
+  <meta name="google-adsense-account" content="ca-pub-7342369119079593">
+  <script>(function(s){s.dataset.zone='9823631',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+  <meta name="monetag" content="e1c3600f8329495344057fcd9f66a876">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
+  <style>
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #ff1a1a, #cc0000);
+      background: linear-gradient(135deg, #d32f2f, #3e2723); /* red to chocolate */
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      font-family: "Poppins", sans-serif;
+      font-family: "Montserrat", sans-serif;
       flex-direction: column;
       text-align: center;
       overflow: hidden;
     }
 
-    /* Logo animation */
+    /* Logo */
     .logo-img {
       width: 180px;
       height: auto;
       border-radius: 20px;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
       opacity: 0;
       transform: scale(0.7);
       animation: fadeZoom 1.2s ease forwards;
@@ -40,17 +44,21 @@
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    /* Roomofy text typing effect */
+    /* Main Title */
     h1 {
-      font-size: 3em;
+      font-size: 3.2em;
       margin: 0;
-      letter-spacing: 2px;
+      font-family: "Playfair Display", serif;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #fff, #e0c3a3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       white-space: nowrap;
       border-right: 3px solid rgba(255,255,255,0.75);
       width: 0;
       overflow: hidden;
-      animation: typing 2s steps(20, end) forwards,
-                 blink 0.7s step-end infinite;
+      animation: typing 2.5s steps(22, end) forwards,
+                 blink 0.8s step-end infinite;
     }
 
     @keyframes typing {
@@ -62,17 +70,34 @@
       50% { border-color: transparent; }
     }
 
+    /* Tagline */
+    h2 {
+      font-size: 1.2em;
+      margin-top: 15px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      opacity: 0;
+      animation: fadeIn 1.5s ease forwards 2.6s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* Loader */
     .loader {
       margin-top: 40px;
-      width: 45px;
-      height: 45px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top: 4px solid white;
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.25);
+      border-top: 4px solid #fff;
       border-radius: 50%;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 0 12px rgba(255,255,255,0.3);
       opacity: 0;
       transform: translateY(50px);
-      animation: slideUp 1s ease forwards 2.2s, spin 1s linear infinite 2.2s;
+      animation: slideUp 1s ease forwards 3.1s, spin 1s linear infinite 3.1s;
     }
 
     @keyframes slideUp {
@@ -87,19 +112,19 @@
   </style>
 
   <script>
-    // Redirect after 3.5s
+    // Redirect after 3.8s
     setTimeout(() => {
       window.location.href = "login.html";
-    }, 3500);
+    }, 3800);
   </script>
 </head>
 <body>
-  <!-- 👇 Model Image -->
+  <!-- Logo -->
   <img src="https://i.ibb.co/4kfN7gz/Gemini-Generated-Image-rbx2f0rbx2f0rbx2.png" 
        alt="Roomofy Logo" class="logo-img">
 
   <h1>Roomofy.online</h1>
-  <h2>rooms which matches your criteria </h2>
+  <h2>Rooms that perfectly match your lifestyle</h2>
   <div class="loader"></div>
 </body>
 </html>

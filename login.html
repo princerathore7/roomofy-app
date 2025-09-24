@@ -5,73 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Roomofy - Login / Signup</title>
 <style>
+ 
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Poppins:wght@400;500;600&display=swap');
+
   body {
-    font-family: 'Poppins', Arial, sans-serif;
-    background: linear-gradient(135deg, #ff8a65, #f44336, #e91e63);
+    font-family: 'Montserrat', 'Poppins', Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
     overflow: hidden;
-  }
-
-  body::before {
-    content: "";
-    position: absolute;
-    width: 150%;
-    height: 150%;
-    background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
-                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08), transparent 70%);
-    animation: float 25s linear infinite;
-    z-index: 0;
-  }
-
-  @keyframes float {
-    0% { transform: translate(0,0) rotate(0deg); }
-    50% { transform: translate(-20px, 30px) rotate(180deg); }
-    100% { transform: translate(0,0) rotate(360deg); }
+    color: #3e2723;
   }
 
   .container {
     position: relative;
     z-index: 1;
     width: 360px;
-    padding: 30px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: #fff;
+    padding: 32px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.08);
     display: flex;
     flex-direction: column;
     align-items: center;
   }
 
   .container img {
-    border-radius: 20px;
+    border-radius: 14px;
     width: 100%;
-    max-width: 300px;
-    margin-bottom: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    transform: scale(1);
-    transition: transform 0.4s ease;
+    max-width: 260px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
   }
-  .container img:hover { transform: scale(1.05) rotate(-1deg); }
+  .container img:hover { transform: scale(1.03); }
 
   h2 {
-    font-size: 24px;
-    margin-bottom: 15px;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    margin-bottom: 18px;
     text-align: center;
-    color: #ffd700;
-    text-shadow: 0 0 8px #ff4500, 0 0 16px #ff6347;
-    animation: glowText 2s ease-in-out infinite alternate;
-  }
-
-  @keyframes glowText {
-    from { text-shadow: 0 0 8px #ff4500, 0 0 16px #ff6347; }
-    to { text-shadow: 0 0 16px #ffd700, 0 0 32px #ffa500; }
+    font-weight: 600;
+    color: #6d1b1b; /* maroon */
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #a1887f;
+    padding-bottom: 8px;
+    width: 100%;
   }
 
   form {
@@ -84,93 +69,95 @@
 
   input {
     width: 100%;
-    padding: 12px 15px;
-    border-radius: 12px;
-    border: none;
-    font-size: 16px;
-    background: rgba(255,255,255,0.2);
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #a1887f;
+    font-size: 15px;
+    background: #fafafa;
+    color: #3e2723;
     transition: all 0.3s ease;
   }
   input:focus {
-    background: rgba(255,255,255,0.35);
-    box-shadow: 0 0 15px #ff6347, 0 0 25px #ff4500;
+    border-color: #6d1b1b;
+    box-shadow: 0 0 6px rgba(109,27,27,0.3);
     outline: none;
-    transform: translateY(-2px);
   }
 
   button {
     width: 100%;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
     font-size: 16px;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ff4500, #ff6347);
+    font-weight: 600;
+    background: linear-gradient(135deg, #8d6e63, #6d1b1b);
     color: #fff;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
   }
   button:hover {
-    background: linear-gradient(135deg, #ffd700, #ffa500);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5), 0 0 20px #ff6347;
+    background: linear-gradient(135deg, #6d1b1b, #3e2723);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
   }
 
   .toggle-link {
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
-    color: #fff;
+    color: #6d1b1b;
     text-decoration: underline;
     transition: color 0.3s;
   }
-  .toggle-link:hover { color: #ffd700; }
+  .toggle-link:hover { color: #3e2723; }
 
   .message {
     font-size: 14px;
     min-height: 18px;
     text-align: center;
   }
-  .message.success { color: #00ff7f; }
-  .message.error { color: #ff6347; }
+  .message.success { color: #2e7d32; }
+  .message.error { color: #c62828; }
 
   .extra-links {
-    margin-top: 18px;
+    margin-top: 15px;
     text-align: center;
     font-size: 14px;
+    color: #5d4037;
   }
   .extra-links a {
-    color: #ffd700;
+    color: #6d1b1b;
     text-decoration: none;
     margin: 0 6px;
-    font-weight: bold;
+    font-weight: 600;
     transition: all 0.3s;
   }
-  .extra-links a:hover { color: #ff4500; text-decoration: underline; }
+  .extra-links a:hover { color: #3e2723; text-decoration: underline; }
 
   #processing, #contactMsg {
     font-weight: bold;
     text-align: center;
-    color: #fff;
+    color: #6d1b1b;
     margin-top: 10px;
   }
 
   #fadingLines {
-    min-height: 22px;
-    margin: 8px 0;
-    color: #fff;
-    font-weight: bold;
+    min-height: 20px;
+    margin: 6px 0;
+    color: #5d4037;
+    font-weight: 600;
     text-align: center;
   }
 
   @media (max-width: 420px) {
-    .container { width: 90%; padding: 20px; }
-    h2 { font-size: 20px; }
+    .container { width: 90%; padding: 24px; }
+    h2 { font-size: 22px; }
     input, button { font-size: 14px; padding: 10px; }
   }
+
+
 </style>
+
 </head>
 <body>
 
